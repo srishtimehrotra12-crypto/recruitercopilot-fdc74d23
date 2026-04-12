@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
+import type { CandidateReport } from "@/types/reports";
 
 interface Resume {
   name: string;
@@ -11,6 +12,8 @@ export function useScreening() {
   const [result, setResult] = useState("");
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [jobDescription, setJobDescription] = useState("");
+  const [reports, setReports] = useState<CandidateReport[]>([]);
+  const [isGeneratingReports, setIsGeneratingReports] = useState(false);
 
   const addResume = useCallback((name: string, content: string) => {
     setResumes(prev => [...prev, { name, content }]);
@@ -24,6 +27,41 @@ export function useScreening() {
     setResumes([]);
     setJobDescription("");
     setResult("");
+    setReports([]);
+  }, []);
+
+  const generateReports = useCallback(async (jd: string, res: Resume[], summary: string) => {
+    setIsGeneratingReports(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const resp = await fetch(`${supabaseUrl}/functions/v1/generate-reports`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({ jobDescription: jd, resumes: res, screeningSummary: summary }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Report generation failed" }));
+        toast.error(err.error || "Failed to generate reports");
+        return;
+      }
+
+      const data = await resp.json();
+      if (data.reports && Array.isArray(data.reports)) {
+        setReports(data.reports);
+        toast.success("Intelligence Reports & Interview Kits ready!");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate reports");
+    } finally {
+      setIsGeneratingReports(false);
+    }
   }, []);
 
   const screen = useCallback(async () => {
@@ -38,6 +76,7 @@ export function useScreening() {
 
     setIsScreening(true);
     setResult("");
+    setReports([]);
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -95,14 +134,17 @@ export function useScreening() {
         }
       }
 
-      toast.success("Screening complete!");
+      toast.success("Screening complete! Generating reports...");
+      setIsScreening(false);
+
+      // Auto-generate reports
+      await generateReports(jobDescription, resumes, fullText);
     } catch (e) {
       console.error(e);
       toast.error("Something went wrong. Please try again.");
-    } finally {
       setIsScreening(false);
     }
-  }, [jobDescription, resumes]);
+  }, [jobDescription, resumes, generateReports]);
 
   return {
     isScreening,
@@ -115,5 +157,7 @@ export function useScreening() {
     removeResume,
     clearAll,
     screen,
+    reports,
+    isGeneratingReports,
   };
 }
