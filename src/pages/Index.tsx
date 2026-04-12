@@ -1,8 +1,11 @@
-import { useRef } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { HeroSection } from "@/components/HeroSection";
 import { ResumeInput } from "@/components/ResumeInput";
 import { ScreeningResults } from "@/components/ScreeningResults";
+import { HistoryPanel } from "@/components/HistoryPanel";
 import { useScreening } from "@/hooks/useScreening";
+import { useHistory } from "@/hooks/useHistory";
+import type { ScreeningSession } from "@/hooks/useHistory";
 import { Button } from "@/components/ui/button";
 import { Briefcase, RotateCcw, Sparkles } from "lucide-react";
 
@@ -13,23 +16,55 @@ const Index = () => {
     resumes,
     jobDescription,
     setJobDescription,
+    setResult,
     addResume,
     removeResume,
     clearAll,
     screen,
   } = useScreening();
 
+  const { sessions, saveSession, deleteSession, clearHistory } = useHistory();
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const prevScreeningRef = useRef(false);
 
   const scrollToWorkspace = () => {
     workspaceRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Auto-save when screening completes
+  useEffect(() => {
+    if (prevScreeningRef.current && !isScreening && result) {
+      saveSession(
+        jobDescription,
+        resumes.map((r) => r.name),
+        result
+      );
+    }
+    prevScreeningRef.current = isScreening;
+  }, [isScreening, result, jobDescription, resumes, saveSession]);
+
+  const handleLoadSession = useCallback(
+    (session: ScreeningSession) => {
+      setJobDescription(session.jobDescription);
+      setResult(session.result);
+      workspaceRef.current?.scrollIntoView({ behavior: "smooth" });
+    },
+    [setJobDescription, setResult]
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <HeroSection onGetStarted={scrollToWorkspace} />
 
       <main ref={workspaceRef} className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+        {/* History */}
+        <HistoryPanel
+          sessions={sessions}
+          onLoad={handleLoadSession}
+          onDelete={deleteSession}
+          onClear={clearHistory}
+        />
+
         {/* Job Description */}
         <div className="bg-card border border-border rounded-xl p-6 card-shadow">
           <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
