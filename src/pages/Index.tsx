@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback } from "react";
 import { HeroSection } from "@/components/HeroSection";
 import { ResumeInput } from "@/components/ResumeInput";
 import { ScreeningResults } from "@/components/ScreeningResults";
+import { CandidateReports } from "@/components/CandidateReports";
 import { HistoryPanel } from "@/components/HistoryPanel";
 import { useScreening } from "@/hooks/useScreening";
 import { useHistory } from "@/hooks/useHistory";
