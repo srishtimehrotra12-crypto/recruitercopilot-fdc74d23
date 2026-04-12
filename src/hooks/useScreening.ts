@@ -107,6 +107,7 @@ export function useScreening() {
   return {
     isScreening,
     result,
+    setResult,
     resumes,
     jobDescription,
     setJobDescription,
