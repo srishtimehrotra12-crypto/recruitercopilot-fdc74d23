@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback } from "react";
 import { HeroSection } from "@/components/HeroSection";
 import { ResumeInput } from "@/components/ResumeInput";
 import { ScreeningResults } from "@/components/ScreeningResults";
+import { CandidateReports } from "@/components/CandidateReports";
 import { HistoryPanel } from "@/components/HistoryPanel";
 import { useScreening } from "@/hooks/useScreening";
 import { useHistory } from "@/hooks/useHistory";
@@ -21,6 +22,8 @@ const Index = () => {
     removeResume,
     clearAll,
     screen,
+    reports,
+    isGeneratingReports,
   } = useScreening();
 
   const { sessions, saveSession, deleteSession, clearHistory } = useHistory();
@@ -112,6 +115,9 @@ const Index = () => {
 
         {/* Results */}
         <ScreeningResults result={result} isScreening={isScreening} />
+
+        {/* Intelligence Reports & Interview Kits */}
+        <CandidateReports reports={reports} isGenerating={isGeneratingReports} />
       </main>
 
       {/* Footer */}
