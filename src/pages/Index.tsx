@@ -22,6 +22,8 @@ const Index = () => {
     removeResume,
     clearAll,
     screen,
+    reports,
+    isGeneratingReports,
   } = useScreening();
 
   const { sessions, saveSession, deleteSession, clearHistory } = useHistory();
