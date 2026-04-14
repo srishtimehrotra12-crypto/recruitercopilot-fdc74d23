@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { CandidateReport } from "@/types/reports";
+import { downloadReportPDF } from "@/lib/pdfReportGenerator";
 
 interface CandidateReportsProps {
   reports: CandidateReport[];
@@ -52,14 +53,7 @@ export function CandidateReports({ reports, isGenerating }: CandidateReportsProp
   if (!report) return null;
 
   const handleDownload = () => {
-    const content = buildReportText(report);
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${report.name.replace(/\s+/g, "_")}_Report.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadReportPDF(report);
   };
 
   return (
@@ -71,7 +65,7 @@ export function CandidateReports({ reports, isGenerating }: CandidateReportsProp
           Candidate Reports
         </h3>
         <Button variant="outline" size="sm" onClick={handleDownload}>
-          <Download className="w-4 h-4 mr-1" /> Download
+          <Download className="w-4 h-4 mr-1" /> Download PDF
         </Button>
       </div>
 
@@ -262,46 +256,3 @@ function QuestionList({ questions }: { questions?: { question: string; purpose: 
   );
 }
 
-function buildReportText(report: CandidateReport): string {
-  const ir = report.intelligenceReport;
-  const ik = report.interviewKit;
-  let text = `═══════════════════════════════════════════\n`;
-  text += `  INTELLIGENCE REPORT: ${report.name}\n`;
-  text += `  Score: ${report.score}/100 | Verdict: ${report.verdict}\n`;
-  text += `═══════════════════════════════════════════\n\n`;
-
-  if (ir) {
-    text += `EXECUTIVE SUMMARY\n${ir.executiveSummary}\n\n`;
-    text += `SKILLS MATCH\n`;
-    ir.skillsMatch?.forEach(s => { text += `  • ${s.skill}: ${s.rating}${s.required ? " (Required)" : ""}\n`; });
-    text += `\nEXPERIENCE RELEVANCE\n${ir.experienceRelevance}\n\n`;
-    text += `CULTURAL & SOFT SKILLS\n${ir.culturalIndicators}\n\n`;
-    text += `RISK FACTORS\n${ir.riskFactors}\n\n`;
-    text += `OVERALL VERDICT\n${ir.overallVerdict}\n`;
-    text += `Confidence: ${ir.confidenceLevel}\n\n`;
-    text += `RECOMMENDED NEXT STEPS\n${ir.recommendedNextSteps}\n\n`;
-  }
-
-  text += `═══════════════════════════════════════════\n`;
-  text += `  INTERVIEW KIT\n`;
-  text += `═══════════════════════════════════════════\n\n`;
-
-  if (ik) {
-    text += `Duration: ${ik.suggestedDuration} | Format: ${ik.suggestedFormat}\n\n`;
-    text += `BEHAVIORAL QUESTIONS\n`;
-    ik.behavioralQuestions?.forEach((q, i) => {
-      text += `  ${i + 1}. ${q.question}\n     Purpose: ${q.purpose}\n     Look for: ${q.lookFor}\n\n`;
-    });
-    text += `TECHNICAL QUESTIONS\n`;
-    ik.technicalQuestions?.forEach((q, i) => {
-      text += `  ${i + 1}. ${q.question}\n     Purpose: ${q.purpose}\n     Look for: ${q.lookFor}\n\n`;
-    });
-    text += `RED FLAG QUESTIONS\n`;
-    ik.redFlagQuestions?.forEach((q, i) => {
-      text += `  ${i + 1}. ${q.question}\n     Context: ${q.context}\n\n`;
-    });
-    text += `EVALUATION CRITERIA\n${ik.evaluationCriteria}\n`;
-  }
-
-  return text;
-}
