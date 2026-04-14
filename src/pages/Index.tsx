@@ -3,6 +3,7 @@ import { HeroSection } from "@/components/HeroSection";
 import { ResumeInput } from "@/components/ResumeInput";
 import { ScreeningResults } from "@/components/ScreeningResults";
 import { CandidateReports } from "@/components/CandidateReports";
+import { CandidateComparison } from "@/components/CandidateComparison";
 import { HistoryPanel } from "@/components/HistoryPanel";
 import { useScreening } from "@/hooks/useScreening";
 import { useHistory } from "@/hooks/useHistory";
