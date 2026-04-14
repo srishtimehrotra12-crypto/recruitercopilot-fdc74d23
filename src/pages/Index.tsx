@@ -117,6 +117,9 @@ const Index = () => {
         {/* Results */}
         <ScreeningResults result={result} isScreening={isScreening} />
 
+        {/* Candidate Comparison */}
+        <CandidateComparison reports={reports} />
+
         {/* Intelligence Reports & Interview Kits */}
         <CandidateReports reports={reports} isGenerating={isGeneratingReports} />
       </main>
