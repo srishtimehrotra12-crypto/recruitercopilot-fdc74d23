@@ -65,7 +65,7 @@ export function CandidateReports({ reports, isGenerating }: CandidateReportsProp
           Candidate Reports
         </h3>
         <Button variant="outline" size="sm" onClick={handleDownload}>
-          <Download className="w-4 h-4 mr-1" /> Download
+          <Download className="w-4 h-4 mr-1" /> Download PDF
         </Button>
       </div>
 
