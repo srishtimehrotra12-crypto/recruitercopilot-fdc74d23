@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { CandidateReport } from "@/types/reports";
+import { downloadReportPDF } from "@/lib/pdfReportGenerator";
 
 interface CandidateReportsProps {
   reports: CandidateReport[];
@@ -52,14 +53,7 @@ export function CandidateReports({ reports, isGenerating }: CandidateReportsProp
   if (!report) return null;
 
   const handleDownload = () => {
-    const content = buildReportText(report);
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${report.name.replace(/\s+/g, "_")}_Report.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadReportPDF(report);
   };
 
   return (
