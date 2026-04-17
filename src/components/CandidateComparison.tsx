@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { Users, Crown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -49,6 +49,12 @@ export function CandidateComparison({ reports }: CandidateComparisonProps) {
     )
   );
 
+  // Determine top pick (highest score; first in case of tie)
+  const topScore = Math.max(...reports.map(r => r.score));
+  const topIndex = reports.findIndex(r => r.score === topScore);
+
+  const topCellClass = "bg-primary/5";
+
   return (
     <div className="bg-card border border-border rounded-xl p-6 card-shadow animate-fade-in space-y-4">
       <h3 className="font-semibold text-foreground flex items-center gap-2">
@@ -62,8 +68,19 @@ export function CandidateComparison({ reports }: CandidateComparisonProps) {
             <TableRow>
               <TableHead className="min-w-[140px]">Criteria</TableHead>
               {reports.map((r, i) => (
-                <TableHead key={i} className="text-center min-w-[120px]">
-                  {r.name}
+                <TableHead
+                  key={i}
+                  className={`text-center min-w-[120px] ${i === topIndex ? `${topCellClass} text-foreground` : ""}`}
+                >
+                  <div className="flex flex-col items-center gap-1.5 py-1">
+                    <span>{r.name}</span>
+                    {i === topIndex && (
+                      <Badge className="bg-primary text-primary-foreground hover:bg-primary/90 gap-1">
+                        <Crown className="w-3 h-3" />
+                        Top Pick
+                      </Badge>
+                    )}
+                  </div>
                 </TableHead>
               ))}
             </TableRow>
@@ -73,7 +90,7 @@ export function CandidateComparison({ reports }: CandidateComparisonProps) {
             <TableRow>
               <TableCell className="font-medium">Score</TableCell>
               {reports.map((r, i) => (
-                <TableCell key={i} className="text-center">
+                <TableCell key={i} className={`text-center ${i === topIndex ? topCellClass : ""}`}>
                   <span className={`text-xl font-bold ${scoreColor(r.score)}`}>{r.score}</span>
                   <span className="text-muted-foreground text-xs">/100</span>
                 </TableCell>
@@ -84,7 +101,7 @@ export function CandidateComparison({ reports }: CandidateComparisonProps) {
             <TableRow>
               <TableCell className="font-medium">Verdict</TableCell>
               {reports.map((r, i) => (
-                <TableCell key={i} className="text-center">
+                <TableCell key={i} className={`text-center ${i === topIndex ? topCellClass : ""}`}>
                   <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${verdictBg(r.verdict)}`}>
                     {r.verdict}
                   </span>
@@ -96,7 +113,7 @@ export function CandidateComparison({ reports }: CandidateComparisonProps) {
             <TableRow>
               <TableCell className="font-medium">Confidence</TableCell>
               {reports.map((r, i) => (
-                <TableCell key={i} className="text-center text-sm text-muted-foreground">
+                <TableCell key={i} className={`text-center text-sm text-muted-foreground ${i === topIndex ? topCellClass : ""}`}>
                   {r.intelligenceReport?.confidenceLevel || "N/A"}
                 </TableCell>
               ))}
@@ -109,7 +126,7 @@ export function CandidateComparison({ reports }: CandidateComparisonProps) {
                 {reports.map((r, i) => {
                   const match = r.intelligenceReport?.skillsMatch?.find(s => s.skill === skill);
                   return (
-                    <TableCell key={i} className="text-center">
+                    <TableCell key={i} className={`text-center ${i === topIndex ? topCellClass : ""}`}>
                       {match ? (
                         <Badge variant="outline" className={`text-xs ${ratingColor(match.rating)}`}>
                           {match.rating}
