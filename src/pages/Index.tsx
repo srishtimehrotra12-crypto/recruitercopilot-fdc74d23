@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 import { HeroSection } from "@/components/HeroSection";
 import { ResumeInput } from "@/components/ResumeInput";
 import { ScreeningResults } from "@/components/ScreeningResults";
@@ -9,7 +9,9 @@ import { useScreening } from "@/hooks/useScreening";
 import { useHistory } from "@/hooks/useHistory";
 import type { ScreeningSession } from "@/hooks/useHistory";
 import { Button } from "@/components/ui/button";
-import { Briefcase, RotateCcw, Sparkles } from "lucide-react";
+import { Briefcase, RotateCcw, Sparkles, Upload } from "lucide-react";
+import { toast } from "sonner";
+import { extractTextFromPdf } from "@/lib/pdfParser";
 
 const Index = () => {
   const {
@@ -30,6 +32,37 @@ const Index = () => {
   const { sessions, saveSession, deleteSession, clearHistory } = useHistory();
   const workspaceRef = useRef<HTMLDivElement>(null);
   const prevScreeningRef = useRef(false);
+  const jdFileInputRef = useRef<HTMLInputElement>(null);
+  const [jdProcessing, setJdProcessing] = useState(false);
+
+  const handleJdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setJdProcessing(true);
+    try {
+      let text = "";
+      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+        text = await extractTextFromPdf(file);
+        if (!text.trim()) {
+          toast.error("Could not extract text (may be a scanned image PDF)");
+          return;
+        }
+      } else if (file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt")) {
+        text = await file.text();
+      } else {
+        toast.error("Only PDF and TXT files are supported");
+        return;
+      }
+      setJobDescription(text);
+      toast.success(`Loaded ${file.name}`);
+    } catch (err) {
+      console.error("JD upload error:", err);
+      toast.error("Failed to process file");
+    } finally {
+      setJdProcessing(false);
+      if (jdFileInputRef.current) jdFileInputRef.current.value = "";
+    }
+  };
 
   const scrollToWorkspace = () => {
     workspaceRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -71,14 +104,40 @@ const Index = () => {
 
         {/* Job Description */}
         <div className="bg-card border border-border rounded-xl p-6 card-shadow">
-          <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
-            <Briefcase className="w-5 h-5 text-primary" />
-            Job Description
-          </h3>
+          <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-primary" />
+              Job Description
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => jdFileInputRef.current?.click()}
+              disabled={jdProcessing}
+            >
+              {jdProcessing ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-1" /> Upload PDF/TXT
+                </>
+              )}
+            </Button>
+            <input
+              ref={jdFileInputRef}
+              type="file"
+              accept=".pdf,.txt"
+              className="hidden"
+              onChange={handleJdUpload}
+            />
+          </div>
           <textarea
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste the job description here... Include role title, required skills, experience, qualifications, etc."
+            placeholder="Paste the job description here, or upload a PDF/TXT file."
             rows={6}
             className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
           />
