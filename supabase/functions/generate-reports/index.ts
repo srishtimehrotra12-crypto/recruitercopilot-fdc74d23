@@ -27,16 +27,31 @@ serve(async (req) => {
       )
       .join("\n");
 
-    const systemPrompt = `You are an expert recruiter AI. You generate two deliverables per candidate:
+    const systemPrompt = `You are an expert recruiter AI generating in-depth, client-ready candidate intelligence. You produce two deliverables per candidate. Be specific, evidence-based, and cite resume details. Avoid generic statements.
 
-1. **Intelligence Report** — A polished, client-ready candidate assessment covering:
-   - Executive Summary (2-3 sentences)
-   - Skills Match Analysis (table of required vs candidate skills with ratings)
-   - Experience Relevance (how their background maps to the role)
-   - Cultural & Soft Skills Indicators
-   - Risk Factors & Red Flags
-   - Overall Verdict with confidence level (High/Medium/Low)
-   - Recommended Next Steps
+IMPORTANT GUIDELINES:
+- Stay objective and evidence-based. Quote or paraphrase resume specifics.
+- Do NOT make protected-class inferences (age, gender, race, religion, nationality, marital status). Keep assessments role-relevant.
+- Flag uncertainty honestly. If information is missing, say so rather than inventing.
+- Your output supports — but does not replace — human judgment.
+
+1. **Intelligence Report** — A comprehensive, client-ready candidate dossier covering:
+   - Executive Summary (3-4 sentences capturing the bottom line)
+   - Candidate Snapshot (years of experience, current role, seniority level, location if known, education)
+   - Skills Match Analysis (every required skill with rating + 1-line evidence from the resume)
+   - Experience Relevance (how their background maps to the role, with concrete examples)
+   - Career Highlights (3-5 standout achievements with measurable impact where possible)
+   - Career Trajectory (progression pattern, tenure stability, growth signals)
+   - Cultural & Soft Skills Indicators (collaboration, leadership, communication signals from resume)
+   - Motivation & Fit Signals (likely interests, why this role might appeal, alignment cues)
+   - Strengths (3-5 crisp bullets)
+   - Development Areas (3-5 honest gaps or areas to probe)
+   - Risk Factors & Red Flags (job hopping, gaps, unclear scope, etc.)
+   - Compensation Estimate (rough market range with rationale, if inferable)
+   - Diversity-Neutral Notes (only role-relevant considerations; never protected-class inferences)
+   - Overall Verdict (clear hire/no-hire recommendation with reasoning)
+   - Confidence Level (High/Medium/Low) with rationale (what would raise/lower confidence)
+   - Recommended Next Steps (specific actions: who should interview, what to probe)
 
 2. **Interview Kit** — A personalized interview guide covering:
    - 5-7 Behavioral Questions (tailored to gaps/strengths found in their resume vs JD)
@@ -63,12 +78,27 @@ Return a JSON array with one object per candidate. Each object must have:
   "verdict": "Strong Hire" | "Hire" | "Maybe" | "Pass",
   "intelligenceReport": {
     "executiveSummary": "...",
-    "skillsMatch": [{"skill": "...", "required": true, "rating": "Strong|Adequate|Weak|Missing"}],
+    "candidateSnapshot": {
+      "yearsOfExperience": "e.g. 7+ years",
+      "currentRole": "e.g. Senior Software Engineer at Acme",
+      "seniority": "Junior|Mid|Senior|Staff|Principal|Lead|Director",
+      "location": "City, Country (or 'Not specified')",
+      "education": "Degree, Institution (or 'Not specified')"
+    },
+    "skillsMatch": [{"skill": "...", "required": true, "rating": "Strong|Adequate|Weak|Missing", "evidence": "1-line proof from resume"}],
     "experienceRelevance": "...",
+    "careerHighlights": [{"title": "Short title", "detail": "Specific achievement with metric if available"}],
+    "careerTrajectory": "...",
     "culturalIndicators": "...",
+    "motivationFitSignals": "...",
+    "strengths": ["...", "..."],
+    "developmentAreas": ["...", "..."],
     "riskFactors": "...",
+    "compensationEstimate": {"range": "e.g. $120k-$150k USD", "rationale": "..."},
+    "diversityNeutralNotes": "Only role-relevant considerations.",
     "overallVerdict": "...",
     "confidenceLevel": "High|Medium|Low",
+    "confidenceRationale": "What would raise or lower confidence",
     "recommendedNextSteps": "..."
   },
   "interviewKit": {
