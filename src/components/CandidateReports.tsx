@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { FileText, ClipboardList, Download, ChevronLeft, ChevronRight, Shield, Target, AlertTriangle, CheckCircle } from "lucide-react";
+import { FileText, ClipboardList, Download, ChevronLeft, ChevronRight, Shield, Target, AlertTriangle, CheckCircle, Briefcase, TrendingUp, Heart, DollarSign, Award, Lightbulb, MapPin, GraduationCap, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { AiDisclaimer } from "@/components/AiDisclaimer";
 import type { CandidateReport } from "@/types/reports";
 import { downloadReportPDF } from "@/lib/pdfReportGenerator";
 
@@ -27,6 +28,15 @@ const verdictColor = (verdict: string) => {
   if (v.includes("hire")) return "bg-primary";
   if (v.includes("maybe")) return "bg-amber-500";
   return "bg-destructive";
+};
+
+const confidenceTone = (level?: string) => {
+  switch (level) {
+    case "High": return "bg-emerald-100 text-emerald-800 border-emerald-200";
+    case "Medium": return "bg-amber-100 text-amber-800 border-amber-200";
+    case "Low": return "bg-red-100 text-red-800 border-red-200";
+    default: return "bg-muted text-muted-foreground border-border";
+  }
 };
 
 export function CandidateReports({ reports, isGenerating }: CandidateReportsProps) {
@@ -69,6 +79,8 @@ export function CandidateReports({ reports, isGenerating }: CandidateReportsProp
         </Button>
       </div>
 
+      <AiDisclaimer variant="inline" />
+
       {reports.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           <Button variant="ghost" size="icon" className="shrink-0" disabled={selectedIndex === 0} onClick={() => setSelectedIndex(i => i - 1)}>
@@ -98,15 +110,18 @@ export function CandidateReports({ reports, isGenerating }: CandidateReportsProp
         <div className="w-16 h-16 rounded-full hero-gradient flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg">
           {report.score}
         </div>
-        <div>
-          <h4 className="text-lg font-bold text-foreground">{report.name}</h4>
-          <div className="flex items-center gap-2 mt-1">
+        <div className="min-w-0 flex-1">
+          <h4 className="text-lg font-bold text-foreground truncate">{report.name}</h4>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold text-primary-foreground ${verdictColor(report.verdict)}`}>
               {report.verdict}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <Badge
+              variant="outline"
+              className={`text-xs ${confidenceTone(report.intelligenceReport?.confidenceLevel)}`}
+            >
               Confidence: {report.intelligenceReport?.confidenceLevel || "N/A"}
-            </span>
+            </Badge>
           </div>
         </div>
       </div>
@@ -130,6 +145,8 @@ export function CandidateReports({ reports, isGenerating }: CandidateReportsProp
           <InterviewKitView kit={report.interviewKit} />
         </TabsContent>
       </Tabs>
+
+      <AiDisclaimer variant="compact" />
     </div>
   );
 }
@@ -137,8 +154,23 @@ export function CandidateReports({ reports, isGenerating }: CandidateReportsProp
 function IntelligenceReportView({ report }: { report: CandidateReport["intelligenceReport"] }) {
   if (!report) return <p className="text-sm text-muted-foreground">Report data unavailable.</p>;
 
+  const snap = report.candidateSnapshot;
+
   return (
     <>
+      {/* Snapshot grid */}
+      {snap && (
+        <Section icon={<Briefcase className="w-4 h-4 text-primary" />} title="Candidate Snapshot">
+          <div className="grid sm:grid-cols-2 gap-2">
+            <SnapshotItem icon={<Clock className="w-3.5 h-3.5" />} label="Experience" value={snap.yearsOfExperience} />
+            <SnapshotItem icon={<Briefcase className="w-3.5 h-3.5" />} label="Current Role" value={snap.currentRole} />
+            <SnapshotItem icon={<Award className="w-3.5 h-3.5" />} label="Seniority" value={snap.seniority} />
+            {snap.location && <SnapshotItem icon={<MapPin className="w-3.5 h-3.5" />} label="Location" value={snap.location} />}
+            {snap.education && <SnapshotItem icon={<GraduationCap className="w-3.5 h-3.5" />} label="Education" value={snap.education} />}
+          </div>
+        </Section>
+      )}
+
       {/* Executive Summary */}
       <Section icon={<Target className="w-4 h-4 text-primary" />} title="Executive Summary">
         <p className="text-sm text-foreground/90 leading-relaxed">{report.executiveSummary}</p>
@@ -148,11 +180,19 @@ function IntelligenceReportView({ report }: { report: CandidateReport["intellige
       <Section icon={<CheckCircle className="w-4 h-4 text-primary" />} title="Skills Match Analysis">
         <div className="grid gap-2">
           {report.skillsMatch?.map((s, i) => (
-            <div key={i} className="flex items-center justify-between py-1.5 px-3 bg-secondary/30 rounded-md">
-              <span className="text-sm text-foreground">{s.skill}</span>
-              <Badge variant="outline" className={`text-xs ${ratingColor(s.rating)}`}>
-                {s.rating}
-              </Badge>
+            <div key={i} className="py-2 px-3 bg-secondary/30 rounded-md">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-foreground">
+                  {s.skill}
+                  {s.required && <span className="ml-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">required</span>}
+                </span>
+                <Badge variant="outline" className={`text-xs ${ratingColor(s.rating)}`}>
+                  {s.rating}
+                </Badge>
+              </div>
+              {s.evidence && (
+                <p className="text-xs text-muted-foreground mt-1">{s.evidence}</p>
+              )}
             </div>
           ))}
         </div>
@@ -163,26 +203,129 @@ function IntelligenceReportView({ report }: { report: CandidateReport["intellige
         <p className="text-sm text-foreground/90 leading-relaxed">{report.experienceRelevance}</p>
       </Section>
 
+      {/* Career Highlights */}
+      {report.careerHighlights?.length > 0 && (
+        <Section icon={<Award className="w-4 h-4 text-primary" />} title="Career Highlights">
+          <div className="space-y-2">
+            {report.careerHighlights.map((h, i) => (
+              <div key={i} className="border-l-2 border-primary/40 pl-3 py-0.5">
+                <p className="text-sm font-medium text-foreground">{h.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{h.detail}</p>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Career Trajectory */}
+      {report.careerTrajectory && (
+        <Section icon={<TrendingUp className="w-4 h-4 text-primary" />} title="Career Trajectory">
+          <p className="text-sm text-foreground/90 leading-relaxed">{report.careerTrajectory}</p>
+        </Section>
+      )}
+
+      {/* Strengths & Development Areas */}
+      {(report.strengths?.length || report.developmentAreas?.length) ? (
+        <div className="grid sm:grid-cols-2 gap-3">
+          {report.strengths?.length > 0 && (
+            <div className="bg-emerald-50/50 border border-emerald-100 rounded-lg p-3">
+              <h5 className="text-xs font-semibold uppercase tracking-wider text-emerald-700 mb-2 flex items-center gap-1.5">
+                <CheckCircle className="w-3.5 h-3.5" /> Strengths
+              </h5>
+              <ul className="space-y-1.5">
+                {report.strengths.map((s, i) => (
+                  <li key={i} className="text-sm text-foreground/90 flex gap-2">
+                    <span className="text-emerald-600 mt-0.5">✓</span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {report.developmentAreas?.length > 0 && (
+            <div className="bg-amber-50/50 border border-amber-100 rounded-lg p-3">
+              <h5 className="text-xs font-semibold uppercase tracking-wider text-amber-700 mb-2 flex items-center gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5" /> Development Areas
+              </h5>
+              <ul className="space-y-1.5">
+                {report.developmentAreas.map((d, i) => (
+                  <li key={i} className="text-sm text-foreground/90 flex gap-2">
+                    <span className="text-amber-600 mt-0.5">•</span>
+                    <span>{d}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : null}
+
       {/* Cultural */}
-      <Section title="Cultural & Soft Skills Indicators">
+      <Section icon={<Users className="w-4 h-4 text-primary" />} title="Cultural & Soft Skills Indicators">
         <p className="text-sm text-foreground/90 leading-relaxed">{report.culturalIndicators}</p>
       </Section>
+
+      {/* Motivation */}
+      {report.motivationFitSignals && (
+        <Section icon={<Heart className="w-4 h-4 text-primary" />} title="Motivation & Fit Signals">
+          <p className="text-sm text-foreground/90 leading-relaxed">{report.motivationFitSignals}</p>
+        </Section>
+      )}
 
       {/* Risk Factors */}
       <Section icon={<AlertTriangle className="w-4 h-4 text-amber-500" />} title="Risk Factors & Red Flags">
         <p className="text-sm text-foreground/90 leading-relaxed">{report.riskFactors}</p>
       </Section>
 
+      {/* Compensation */}
+      {report.compensationEstimate?.range && (
+        <Section icon={<DollarSign className="w-4 h-4 text-primary" />} title="Compensation Estimate">
+          <div className="bg-secondary/40 rounded-lg p-3">
+            <p className="text-base font-semibold text-foreground">{report.compensationEstimate.range}</p>
+            <p className="text-xs text-muted-foreground mt-1">{report.compensationEstimate.rationale}</p>
+          </div>
+        </Section>
+      )}
+
+      {/* Diversity Notes */}
+      {report.diversityNeutralNotes && (
+        <Section title="Role-Relevant Considerations">
+          <p className="text-xs text-muted-foreground italic leading-relaxed">{report.diversityNeutralNotes}</p>
+        </Section>
+      )}
+
       {/* Verdict */}
       <Section title="Overall Verdict">
-        <p className="text-sm text-foreground/90 leading-relaxed">{report.overallVerdict}</p>
+        <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+          <p className="text-sm text-foreground/90 leading-relaxed">{report.overallVerdict}</p>
+        </div>
       </Section>
+
+      {/* Confidence rationale */}
+      {report.confidenceRationale && (
+        <Section title="Confidence Rationale">
+          <p className="text-xs text-muted-foreground leading-relaxed">{report.confidenceRationale}</p>
+        </Section>
+      )}
 
       {/* Next Steps */}
       <Section title="Recommended Next Steps">
         <p className="text-sm text-foreground/90 leading-relaxed">{report.recommendedNextSteps}</p>
       </Section>
     </>
+  );
+}
+
+function SnapshotItem({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-2 px-3 py-2 bg-secondary/30 rounded-md">
+      <span className="text-muted-foreground mt-0.5">{icon}</span>
+      <div className="min-w-0">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className="text-sm text-foreground truncate">{value}</div>
+      </div>
+    </div>
   );
 }
 
@@ -255,4 +398,3 @@ function QuestionList({ questions }: { questions?: { question: string; purpose: 
     </div>
   );
 }
-
