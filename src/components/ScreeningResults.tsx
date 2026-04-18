@@ -45,7 +45,15 @@ function parseResult(raw: string): { intro: string[]; candidates: CandidateBlock
     section = null;
   };
 
-  const cleanInline = (s: string) => s.replace(/^\*+\s*|\s*\*+$/g, "").trim();
+  // Strip markdown bold/italic markers and stray asterisks anywhere in the string.
+  const stripStars = (s: string) =>
+    s
+      .replace(/\*\*([^*]+)\*\*/g, "$1") // **bold**
+      .replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, "$1") // *italic*
+      .replace(/\*+/g, "") // any remaining stars
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  const cleanInline = (s: string) => stripStars(s);
 
   for (const rawLine of lines) {
     const line = rawLine.replace(/\r/g, "");
