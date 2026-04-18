@@ -1,10 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
+import type { CandidateReport } from "@/types/reports";
 
 export interface ScreeningSession {
   id: string;
   jobDescription: string;
   resumeNames: string[];
   result: string;
+  reports?: CandidateReport[];
   createdAt: string;
 }
 
@@ -20,7 +22,15 @@ function loadSessions(): ScreeningSession[] {
 }
 
 function persistSessions(sessions: ScreeningSession[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
+  } catch (e) {
+    // Storage may be full — drop oldest and retry once
+    console.warn("History storage failed, trimming.", e);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions.slice(0, 10)));
+    } catch {}
+  }
 }
 
 export function useHistory() {
@@ -31,15 +41,31 @@ export function useHistory() {
   }, [sessions]);
 
   const saveSession = useCallback(
-    (jobDescription: string, resumeNames: string[], result: string) => {
+    (
+      jobDescription: string,
+      resumeNames: string[],
+      result: string,
+      reports?: CandidateReport[]
+    ): string => {
       const session: ScreeningSession = {
         id: crypto.randomUUID(),
         jobDescription,
         resumeNames,
         result,
+        reports,
         createdAt: new Date().toISOString(),
       };
       setSessions((prev) => [session, ...prev]);
+      return session.id;
+    },
+    []
+  );
+
+  const updateSessionReports = useCallback(
+    (id: string, reports: CandidateReport[]) => {
+      setSessions((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, reports } : s))
+      );
     },
     []
   );
@@ -52,5 +78,5 @@ export function useHistory() {
     setSessions([]);
   }, []);
 
-  return { sessions, saveSession, deleteSession, clearHistory };
+  return { sessions, saveSession, updateSessionReports, deleteSession, clearHistory };
 }
