@@ -72,35 +72,33 @@ const Index = () => {
     workspaceRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Auto-save when screening completes (initial save with summary only)
+  // Save session as soon as screening summary completes
   useEffect(() => {
     if (prevScreeningRef.current && !isScreening && result) {
-      saveSession(
+      const id = saveSession(
         jobDescription,
         resumes.map((r) => r.name),
         result,
         reports.length > 0 ? reports : undefined
       );
-      justSavedRef.current = true;
+      lastSavedIdRef.current = id;
     }
     prevScreeningRef.current = isScreening;
   }, [isScreening, result, jobDescription, resumes, reports, saveSession]);
 
-  // When reports finish generating after a save, update the most recent session
+  // When report generation finishes, attach reports to the saved session
   useEffect(() => {
     if (
+      prevGeneratingRef.current &&
+      !isGeneratingReports &&
       reports.length > 0 &&
-      reports.length !== prevReportsLenRef.current &&
-      justSavedRef.current &&
-      !isScreening &&
-      !isGeneratingReports
+      lastSavedIdRef.current
     ) {
-      // Reports just completed for a freshly saved session — re-save with reports
-      // (We rely on the previous save effect already running; here we just clear the flag.)
-      justSavedRef.current = false;
+      updateSessionReports(lastSavedIdRef.current, reports);
+      lastSavedIdRef.current = null;
     }
-    prevReportsLenRef.current = reports.length;
-  }, [reports, isScreening, isGeneratingReports]);
+    prevGeneratingRef.current = isGeneratingReports;
+  }, [isGeneratingReports, reports, updateSessionReports]);
 
   const handleLoadSession = useCallback(
     (session: ScreeningSession) => {
