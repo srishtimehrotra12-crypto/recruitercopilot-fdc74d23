@@ -46,7 +46,7 @@ export function useHistory() {
       resumeNames: string[],
       result: string,
       reports?: CandidateReport[]
-    ) => {
+    ): string => {
       const session: ScreeningSession = {
         id: crypto.randomUUID(),
         jobDescription,
@@ -56,6 +56,7 @@ export function useHistory() {
         createdAt: new Date().toISOString(),
       };
       setSessions((prev) => [session, ...prev]);
+      return session.id;
     },
     []
   );
