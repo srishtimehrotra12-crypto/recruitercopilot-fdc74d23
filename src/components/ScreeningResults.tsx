@@ -70,7 +70,7 @@ function parseResult(raw: string): { intro: string[]; candidates: CandidateBlock
 
     if (headingMatch && candHeading) {
       // Skip generic "Ranking" headers
-      const h = headingMatch[1].trim();
+      const h = stripStars(headingMatch[1]);
       if (/^ranking|^summary|^overall/i.test(h) && !current) {
         intro.push(h);
         continue;
@@ -80,7 +80,7 @@ function parseResult(raw: string): { intro: string[]; candidates: CandidateBlock
     }
 
     if (!current) {
-      intro.push(trimmed);
+      intro.push(stripStars(trimmed));
       continue;
     }
 
@@ -113,14 +113,14 @@ function parseResult(raw: string): { intro: string[]; candidates: CandidateBlock
     // Inline labeled lines like "**Strengths**: foo, bar"
     const inlineStrengths = trimmed.match(/^\*?\*?strengths?\*?\*?\s*[:\-]\s*(.+)$/i);
     if (inlineStrengths) {
-      const items = inlineStrengths[1].split(/[;•]|,(?![^()]*\))/).map((s) => s.trim()).filter(Boolean);
+      const items = inlineStrengths[1].split(/[;•]|,(?![^()]*\))/).map((s) => stripStars(s)).filter(Boolean);
       current.strengths.push(...items);
       section = "strengths";
       continue;
     }
     const inlineGaps = trimmed.match(/^\*?\*?(gaps?|concerns?)\*?\*?\s*[:\-]\s*(.+)$/i);
     if (inlineGaps) {
-      const items = inlineGaps[2].split(/[;•]|,(?![^()]*\))/).map((s) => s.trim()).filter(Boolean);
+      const items = inlineGaps[2].split(/[;•]|,(?![^()]*\))/).map((s) => stripStars(s)).filter(Boolean);
       current.gaps.push(...items);
       section = "gaps";
       continue;
@@ -128,14 +128,15 @@ function parseResult(raw: string): { intro: string[]; candidates: CandidateBlock
 
     // Bullet items
     if (/^[-*•]\s+/.test(trimmed)) {
-      const item = trimmed.replace(/^[-*•]\s+/, "");
+      const item = stripStars(trimmed.replace(/^[-*•]\s+/, ""));
+      if (!item) continue;
       if (section === "strengths") current.strengths.push(item);
       else if (section === "gaps") current.gaps.push(item);
       else current.notes.push(item);
       continue;
     }
 
-    current.notes.push(trimmed);
+    current.notes.push(stripStars(trimmed));
   }
 
   return { intro, candidates };
