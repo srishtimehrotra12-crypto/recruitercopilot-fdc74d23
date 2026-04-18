@@ -158,6 +158,7 @@ export function useScreening() {
     clearAll,
     screen,
     reports,
+    setReports,
     isGeneratingReports,
   };
 }
