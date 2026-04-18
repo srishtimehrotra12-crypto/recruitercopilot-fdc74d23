@@ -31,11 +31,11 @@ const Index = () => {
     isGeneratingReports,
   } = useScreening();
 
-  const { sessions, saveSession, deleteSession, clearHistory } = useHistory();
+  const { sessions, saveSession, updateSessionReports, deleteSession, clearHistory } = useHistory();
   const workspaceRef = useRef<HTMLDivElement>(null);
   const prevScreeningRef = useRef(false);
-  const prevReportsLenRef = useRef(0);
-  const justSavedRef = useRef(false);
+  const lastSavedIdRef = useRef<string | null>(null);
+  const prevGeneratingRef = useRef(false);
   const jdFileInputRef = useRef<HTMLInputElement>(null);
   const [jdProcessing, setJdProcessing] = useState(false);
 
