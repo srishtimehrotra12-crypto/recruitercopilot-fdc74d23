@@ -27,12 +27,15 @@ const Index = () => {
     clearAll,
     screen,
     reports,
+    setReports,
     isGeneratingReports,
   } = useScreening();
 
   const { sessions, saveSession, deleteSession, clearHistory } = useHistory();
   const workspaceRef = useRef<HTMLDivElement>(null);
   const prevScreeningRef = useRef(false);
+  const prevReportsLenRef = useRef(0);
+  const justSavedRef = useRef(false);
   const jdFileInputRef = useRef<HTMLInputElement>(null);
   const [jdProcessing, setJdProcessing] = useState(false);
 
@@ -69,26 +72,49 @@ const Index = () => {
     workspaceRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Auto-save when screening completes
+  // Auto-save when screening completes (initial save with summary only)
   useEffect(() => {
     if (prevScreeningRef.current && !isScreening && result) {
       saveSession(
         jobDescription,
         resumes.map((r) => r.name),
-        result
+        result,
+        reports.length > 0 ? reports : undefined
       );
+      justSavedRef.current = true;
     }
     prevScreeningRef.current = isScreening;
-  }, [isScreening, result, jobDescription, resumes, saveSession]);
+  }, [isScreening, result, jobDescription, resumes, reports, saveSession]);
+
+  // When reports finish generating after a save, update the most recent session
+  useEffect(() => {
+    if (
+      reports.length > 0 &&
+      reports.length !== prevReportsLenRef.current &&
+      justSavedRef.current &&
+      !isScreening &&
+      !isGeneratingReports
+    ) {
+      // Reports just completed for a freshly saved session — re-save with reports
+      // (We rely on the previous save effect already running; here we just clear the flag.)
+      justSavedRef.current = false;
+    }
+    prevReportsLenRef.current = reports.length;
+  }, [reports, isScreening, isGeneratingReports]);
 
   const handleLoadSession = useCallback(
     (session: ScreeningSession) => {
       setJobDescription(session.jobDescription);
       setResult(session.result);
+      setReports(session.reports || []);
       workspaceRef.current?.scrollIntoView({ behavior: "smooth" });
+      if (!session.reports || session.reports.length === 0) {
+        toast.info("Loaded screening summary. Detailed reports weren't saved for this session.");
+      }
     },
-    [setJobDescription, setResult]
+    [setJobDescription, setResult, setReports]
   );
+
 
   const canScreen = !isScreening && jobDescription.trim().length > 0 && resumes.length > 0;
 
