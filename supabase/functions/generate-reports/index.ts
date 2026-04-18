@@ -1,14 +1,42 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const MAX_JD_CHARS = 20_000;
+const MAX_RESUME_CHARS = 15_000;
+const MAX_RESUMES = 20;
+const MAX_SUMMARY_CHARS = 50_000;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Authenticate caller via JWT
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { jobDescription, resumes, screeningSummary } = await req.json();
 
     if (!jobDescription || !resumes || !Array.isArray(resumes) || resumes.length === 0) {
@@ -18,8 +46,48 @@ serve(async (req) => {
       });
     }
 
+    // Input size validation to prevent credit exhaustion
+    if (typeof jobDescription !== "string" || jobDescription.length > MAX_JD_CHARS) {
+      return new Response(JSON.stringify({ error: `Job description must be a string under ${MAX_JD_CHARS} characters.` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (resumes.length > MAX_RESUMES) {
+      return new Response(JSON.stringify({ error: `Please limit to ${MAX_RESUMES} resumes per request.` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    for (const r of resumes) {
+      if (!r || typeof r.name !== "string" || typeof r.content !== "string") {
+        return new Response(JSON.stringify({ error: "Each resume must have a name and content string." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (r.content.length > MAX_RESUME_CHARS) {
+        return new Response(JSON.stringify({ error: `Each resume must be under ${MAX_RESUME_CHARS} characters.` }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    if (screeningSummary && (typeof screeningSummary !== "string" || screeningSummary.length > MAX_SUMMARY_CHARS)) {
+      return new Response(JSON.stringify({ error: `Screening summary must be a string under ${MAX_SUMMARY_CHARS} characters.` }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please try again later." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const resumeList = resumes
       .map((r: { name: string; content: string }, i: number) =>
@@ -168,7 +236,7 @@ Return a JSON array with one object per candidate. Each object must have:
     });
   } catch (e) {
     console.error("generate-reports error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
