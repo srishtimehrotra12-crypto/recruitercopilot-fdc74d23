@@ -345,6 +345,7 @@ export function MatchBreakdown({ reports }: MatchBreakdownProps) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
