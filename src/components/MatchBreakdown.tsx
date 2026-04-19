@@ -1,9 +1,50 @@
-import { Target, CheckCircle2, XCircle, TrendingUp, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Target, CheckCircle2, XCircle, TrendingUp, Sparkles, Filter, X } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 import type { CandidateReport } from "@/types/reports";
 
 interface MatchBreakdownProps {
   reports: CandidateReport[];
 }
+
+type VerdictKey = "strong-hire" | "hire" | "maybe" | "pass";
+
+const VERDICT_OPTIONS: { key: VerdictKey; label: string; match: (v: string) => boolean; activeClass: string }[] = [
+  {
+    key: "strong-hire",
+    label: "Strong Hire",
+    match: (v) => v.includes("strong hire"),
+    activeClass: "bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600",
+  },
+  {
+    key: "hire",
+    label: "Hire",
+    match: (v) => v.includes("hire") && !v.includes("strong hire") && !v.includes("no hire"),
+    activeClass: "bg-primary text-primary-foreground border-primary hover:bg-primary/90",
+  },
+  {
+    key: "maybe",
+    label: "Maybe",
+    match: (v) => v.includes("maybe"),
+    activeClass: "bg-amber-500 text-white border-amber-500 hover:bg-amber-600",
+  },
+  {
+    key: "pass",
+    label: "Pass",
+    match: (v) => v.includes("pass") || v.includes("no hire"),
+    activeClass: "bg-red-500 text-white border-red-500 hover:bg-red-600",
+  },
+];
+
+const matchesVerdict = (verdict: string, selected: Set<VerdictKey>): boolean => {
+  if (selected.size === 0) return true;
+  const v = verdict.toLowerCase();
+  for (const opt of VERDICT_OPTIONS) {
+    if (selected.has(opt.key) && opt.match(v)) return true;
+  }
+  return false;
+};
 
 const scoreTone = (score: number) => {
   if (score >= 85) return { text: "text-emerald-600", bg: "bg-emerald-500", soft: "bg-emerald-50 border-emerald-200", ring: "ring-emerald-500/20" };
@@ -33,9 +74,36 @@ const buildFitSummary = (report: CandidateReport): string => {
 };
 
 export function MatchBreakdown({ reports }: MatchBreakdownProps) {
+  const [minScore, setMinScore] = useState(0);
+  const [selectedVerdicts, setSelectedVerdicts] = useState<Set<VerdictKey>>(new Set());
+
+  const sorted = useMemo(
+    () => [...(reports || [])].sort((a, b) => b.score - a.score),
+    [reports]
+  );
+
+  const filtered = useMemo(
+    () => sorted.filter((r) => r.score >= minScore && matchesVerdict(r.verdict, selectedVerdicts)),
+    [sorted, minScore, selectedVerdicts]
+  );
+
   if (!reports || reports.length === 0) return null;
 
-  const sorted = [...reports].sort((a, b) => b.score - a.score);
+  const toggleVerdict = (key: VerdictKey) => {
+    setSelectedVerdicts((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const resetFilters = () => {
+    setMinScore(0);
+    setSelectedVerdicts(new Set());
+  };
+
+  const hasActiveFilters = minScore > 0 || selectedVerdicts.size > 0;
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 card-shadow animate-fade-in">
@@ -45,12 +113,89 @@ export function MatchBreakdown({ reports }: MatchBreakdownProps) {
           Match Breakdown
         </h3>
         <span className="text-xs text-muted-foreground bg-secondary px-2.5 py-1 rounded-full">
-          {reports.length} candidate{reports.length === 1 ? "" : "s"}
+          {filtered.length} of {reports.length} candidate{reports.length === 1 ? "" : "s"}
         </span>
       </div>
 
+      {/* Filters */}
+      <div className="bg-secondary/40 border border-border/60 rounded-lg p-4 mb-5 space-y-4">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Filter className="w-4 h-4 text-primary" />
+            Filters
+          </div>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 px-2 text-xs">
+              <X className="w-3 h-3 mr-1" />
+              Reset
+            </Button>
+          )}
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Min score slider */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Minimum Score
+              </label>
+              <span className="text-sm font-bold text-primary tabular-nums">{minScore}</span>
+            </div>
+            <Slider
+              value={[minScore]}
+              onValueChange={(v) => setMinScore(v[0])}
+              min={0}
+              max={100}
+              step={5}
+              className="w-full"
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+              <span>0</span>
+              <span>50</span>
+              <span>100</span>
+            </div>
+          </div>
+
+          {/* Verdict chips */}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              Verdict
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {VERDICT_OPTIONS.map((opt) => {
+                const active = selectedVerdicts.has(opt.key);
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => toggleVerdict(opt.key)}
+                    className={`text-xs font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                      active
+                        ? opt.activeClass
+                        : "bg-background border-border text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-10 border border-dashed border-border rounded-lg">
+          <p className="text-sm text-muted-foreground">
+            No candidates match your filters.
+          </p>
+          <Button variant="link" size="sm" onClick={resetFilters} className="mt-1">
+            Clear filters
+          </Button>
+        </div>
+      ) : (
       <div className="space-y-4">
-        {sorted.map((report, idx) => {
+        {filtered.map((report, idx) => {
           const tone = scoreTone(report.score);
           const matched = report.intelligenceReport.skillsMatch.filter(
             (s) => s.rating === "Strong" || s.rating === "Adequate"
@@ -200,6 +345,7 @@ export function MatchBreakdown({ reports }: MatchBreakdownProps) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }
