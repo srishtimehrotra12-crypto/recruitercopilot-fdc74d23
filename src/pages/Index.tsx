@@ -4,15 +4,17 @@ import { ResumeInput } from "@/components/ResumeInput";
 import { ScreeningResults } from "@/components/ScreeningResults";
 import { CandidateReports } from "@/components/CandidateReports";
 import { CandidateComparison } from "@/components/CandidateComparison";
+import { MatchBreakdown } from "@/components/MatchBreakdown";
 import { HistoryPanel } from "@/components/HistoryPanel";
 import { AiDisclaimer } from "@/components/AiDisclaimer";
 import { useScreening } from "@/hooks/useScreening";
 import { useHistory } from "@/hooks/useHistory";
 import type { ScreeningSession } from "@/hooks/useHistory";
 import { Button } from "@/components/ui/button";
-import { Briefcase, RotateCcw, Sparkles, Upload, FileText, Users } from "lucide-react";
+import { Briefcase, RotateCcw, Sparkles, Upload, FileText, Users, Download } from "lucide-react";
 import { toast } from "sonner";
 import { extractTextFromPdf } from "@/lib/pdfParser";
+import { downloadCandidatesCsv } from "@/lib/csvExport";
 
 const Index = () => {
   const {
@@ -234,6 +236,23 @@ const Index = () => {
 
         {/* Results */}
         <ScreeningResults result={result} isScreening={isScreening} />
+
+        {/* Detailed Match Breakdown + Export */}
+        {reports.length > 0 && (
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                downloadCandidatesCsv(reports, `ranked-candidates-${new Date().toISOString().slice(0, 10)}.csv`);
+                toast.success("CSV exported");
+              }}
+            >
+              <Download className="w-4 h-4 mr-1" /> Export CSV
+            </Button>
+          </div>
+        )}
+        <MatchBreakdown reports={reports} />
 
         {/* Candidate Comparison */}
         <CandidateComparison reports={reports} />
