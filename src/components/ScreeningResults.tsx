@@ -23,18 +23,59 @@ const recommendationStyle = (rec: string) => {
 
 type Section = "strengths" | "gaps" | "recommendation" | null;
 
+interface MarkdownTable {
+  kind: "table";
+  headers: string[];
+  rows: string[][];
+}
+
+type IntroBlock = string | MarkdownTable;
+
 interface CandidateBlock {
   name: string;
   score?: number;
   recommendation?: string;
   strengths: string[];
   gaps: string[];
-  notes: string[];
+  notes: (string | MarkdownTable)[];
 }
 
-function parseResult(raw: string): { intro: string[]; candidates: CandidateBlock[] } {
+// Parse a contiguous block of markdown table lines starting at index `i`.
+// Returns the table and the index AFTER the last consumed line, or null if not a table.
+function tryParseTable(
+  lines: string[],
+  i: number,
+  stripStars: (s: string) => string
+): { table: MarkdownTable; next: number } | null {
+  const headerLine = lines[i]?.trim();
+  const sepLine = lines[i + 1]?.trim();
+  if (!headerLine || !sepLine) return null;
+  if (!headerLine.includes("|")) return null;
+  // Separator line: | :--- | :--- | etc
+  if (!/^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(sepLine)) return null;
+
+  const splitRow = (row: string) =>
+    row
+      .replace(/^\|/, "")
+      .replace(/\|$/, "")
+      .split("|")
+      .map((c) => stripStars(c.trim()));
+
+  const headers = splitRow(headerLine);
+  const rows: string[][] = [];
+  let j = i + 2;
+  while (j < lines.length) {
+    const row = lines[j].trim();
+    if (!row || !row.includes("|")) break;
+    rows.push(splitRow(row));
+    j++;
+  }
+  return { table: { kind: "table", headers, rows }, next: j };
+}
+
+function parseResult(raw: string): { intro: IntroBlock[]; candidates: CandidateBlock[] } {
   const lines = raw.split("\n");
-  const intro: string[] = [];
+  const intro: IntroBlock[] = [];
   const candidates: CandidateBlock[] = [];
   let current: CandidateBlock | null = null;
   let section: Section = null;
@@ -45,77 +86,85 @@ function parseResult(raw: string): { intro: string[]; candidates: CandidateBlock
     section = null;
   };
 
-  // Strip markdown bold/italic markers and stray asterisks anywhere in the string.
   const stripStars = (s: string) =>
     s
-      .replace(/\*\*([^*]+)\*\*/g, "$1") // **bold**
-      .replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, "$1") // *italic*
-      .replace(/\*+/g, "") // any remaining stars
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/(?<!\*)\*(?!\*)([^*]+)\*(?!\*)/g, "$1")
+      .replace(/\*+/g, "")
       .replace(/\s{2,}/g, " ")
       .trim();
   const cleanInline = (s: string) => stripStars(s);
 
-  for (const rawLine of lines) {
-    const line = rawLine.replace(/\r/g, "");
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].replace(/\r/g, "");
     const trimmed = line.trim();
-    if (!trimmed) continue;
+    if (!trimmed) {
+      i++;
+      continue;
+    }
 
-    // New candidate header (## or # or "Candidate N:" pattern)
+    // Detect markdown table block
+    const tableHit = tryParseTable(lines, i, stripStars);
+    if (tableHit) {
+      if (current) current.notes.push(tableHit.table);
+      else intro.push(tableHit.table);
+      i = tableHit.next;
+      continue;
+    }
+
     const headingMatch = trimmed.match(/^#{1,3}\s+(.+)$/);
-    const candHeading =
-      headingMatch &&
-      (/candidate|^\d+\.|^[A-Z][a-z]+\s+[A-Z]/.test(headingMatch[1]) ||
-        candidates.length === 0 ||
-        true);
-
-    if (headingMatch && candHeading) {
-      // Skip generic "Ranking" headers
+    if (headingMatch) {
       const h = stripStars(headingMatch[1]);
-      if (/^ranking|^summary|^overall/i.test(h) && !current) {
+      if (/^ranking|^summary|^overall|^comparison/i.test(h) && !current) {
         intro.push(h);
+        i++;
         continue;
       }
       startCandidate(h.replace(/^\d+\.\s*/, ""));
+      i++;
       continue;
     }
 
     if (!current) {
       intro.push(stripStars(trimmed));
+      i++;
       continue;
     }
 
-    // Score
     const scoreMatch = trimmed.match(/\*?\*?score\*?\*?\s*[:\-]\s*\*?\*?(\d{1,3})/i);
     if (scoreMatch) {
       current.score = Math.min(100, parseInt(scoreMatch[1], 10));
       section = null;
+      i++;
       continue;
     }
 
-    // Recommendation
     const recMatch = trimmed.match(/\*?\*?recommendation\*?\*?\s*[:\-]\s*(.+)$/i);
     if (recMatch) {
       current.recommendation = cleanInline(recMatch[1]);
       section = null;
+      i++;
       continue;
     }
 
-    // Section headers
     if (/^\*?\*?strengths?\*?\*?\s*[:\-]?$/i.test(trimmed)) {
       section = "strengths";
+      i++;
       continue;
     }
     if (/^\*?\*?(gaps?|concerns?|weaknesses?)\*?\*?\s*[:\-]?$/i.test(trimmed)) {
       section = "gaps";
+      i++;
       continue;
     }
 
-    // Inline labeled lines like "**Strengths**: foo, bar"
     const inlineStrengths = trimmed.match(/^\*?\*?strengths?\*?\*?\s*[:\-]\s*(.+)$/i);
     if (inlineStrengths) {
       const items = inlineStrengths[1].split(/[;•]|,(?![^()]*\))/).map((s) => stripStars(s)).filter(Boolean);
       current.strengths.push(...items);
       section = "strengths";
+      i++;
       continue;
     }
     const inlineGaps = trimmed.match(/^\*?\*?(gaps?|concerns?)\*?\*?\s*[:\-]\s*(.+)$/i);
@@ -123,23 +172,72 @@ function parseResult(raw: string): { intro: string[]; candidates: CandidateBlock
       const items = inlineGaps[2].split(/[;•]|,(?![^()]*\))/).map((s) => stripStars(s)).filter(Boolean);
       current.gaps.push(...items);
       section = "gaps";
+      i++;
       continue;
     }
 
-    // Bullet items
     if (/^[-*•]\s+/.test(trimmed)) {
       const item = stripStars(trimmed.replace(/^[-*•]\s+/, ""));
-      if (!item) continue;
-      if (section === "strengths") current.strengths.push(item);
-      else if (section === "gaps") current.gaps.push(item);
-      else current.notes.push(item);
+      if (item) {
+        if (section === "strengths") current.strengths.push(item);
+        else if (section === "gaps") current.gaps.push(item);
+        else current.notes.push(item);
+      }
+      i++;
       continue;
     }
 
     current.notes.push(stripStars(trimmed));
+    i++;
   }
 
   return { intro, candidates };
+}
+
+function ComparisonTable({ table }: { table: MarkdownTable }) {
+  return (
+    <div className="my-3 overflow-x-auto rounded-lg border-2 border-border shadow-sm">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-primary/10 border-b-2 border-primary/30">
+            {table.headers.map((h, hi) => (
+              <th
+                key={hi}
+                className={`px-3 py-2.5 text-left font-bold text-foreground border-r border-border last:border-r-0 ${
+                  hi === 0 ? "bg-primary/15" : ""
+                }`}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, ri) => (
+            <tr
+              key={ri}
+              className={`border-b border-border last:border-b-0 hover:bg-muted/40 transition-colors ${
+                ri % 2 === 1 ? "bg-muted/20" : "bg-card"
+              }`}
+            >
+              {row.map((cell, ci) => (
+                <td
+                  key={ci}
+                  className={`px-3 py-2.5 border-r border-border last:border-r-0 align-top ${
+                    ci === 0
+                      ? "font-semibold text-foreground bg-muted/30"
+                      : "text-foreground/85"
+                  }`}
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function renderInline(text: string, key: string | number) {
@@ -189,12 +287,17 @@ export function ScreeningResults({ result, isScreening }: ScreeningResultsProps)
       {result && (
         <div className="space-y-5">
           {intro.length > 0 && (
-            <div className="text-sm text-muted-foreground space-y-1">
-              {intro.map((line, i) => (
-                <p key={i}>{renderInline(line, `intro-${i}`)}</p>
-              ))}
+            <div className="text-sm text-muted-foreground space-y-2">
+              {intro.map((line, i) =>
+                typeof line === "string" ? (
+                  <p key={i}>{renderInline(line, `intro-${i}`)}</p>
+                ) : (
+                  <ComparisonTable key={i} table={line} />
+                )
+              )}
             </div>
           )}
+
 
           {candidates.map((c, idx) => {
             const tone = scoreTone(c.score ?? 0);
@@ -300,10 +403,14 @@ export function ScreeningResults({ result, isScreening }: ScreeningResultsProps)
 
                   {/* Notes */}
                   {c.notes.length > 0 && (
-                    <div className="text-sm text-foreground/80 space-y-1 pt-1 border-t border-border">
-                      {c.notes.map((n, i) => (
-                        <p key={i}>{renderInline(n, `n-${idx}-${i}`)}</p>
-                      ))}
+                    <div className="text-sm text-foreground/80 space-y-2 pt-1 border-t border-border">
+                      {c.notes.map((n, i) =>
+                        typeof n === "string" ? (
+                          <p key={i}>{renderInline(n, `n-${idx}-${i}`)}</p>
+                        ) : (
+                          <ComparisonTable key={i} table={n} />
+                        )
+                      )}
                     </div>
                   )}
                 </div>
