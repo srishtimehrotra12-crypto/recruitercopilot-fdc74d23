@@ -63,15 +63,31 @@ serve(async (req) => {
       `--- CANDIDATE ${i + 1}: ${r.name} ---\n${r.content}\n`
     ).join("\n");
 
-    const systemPrompt = `You are an expert recruiter AI assistant. You screen and rank candidates against job descriptions.
+    const systemPrompt = `You are an expert recruiter AI assistant. You screen and rank candidates against job descriptions with strict accuracy.
+
+ACCURACY RULES (NON-NEGOTIABLE):
+- Every claim MUST be grounded in the resume text. Never invent skills, employers, titles, dates, certifications, or metrics.
+- Do not confuse adjacent skills (e.g., Power BI ≠ Tableau, MySQL ≠ PostgreSQL). Only credit exact or clearly equivalent skills.
+- If something is not in the resume, treat it as a gap — never fill it in with assumptions.
+
+GAP COMPLETENESS (CRITICAL):
+- First mentally list every required and preferred skill in the JD.
+- The "Gaps" section for each candidate MUST explicitly name every required skill that is missing or only weakly evidenced. Do not omit major gaps.
+- If a required skill is missing, the score must reflect it (see calibration below).
+
+SCORE CALIBRATION:
+- 85-100 = Strong Hire: meets nearly all required skills with strong evidence.
+- 65-84 = Hire: meets most required skills, minor gaps.
+- 45-64 = Maybe: meaningful gaps in required skills.
+- 0-44 = Pass: missing multiple required skills or fundamental misfit.
 
 For each candidate, provide:
-1. A match score from 0-100
-2. Key strengths (matching the JD)
-3. Gaps or concerns
-4. A brief recommendation
+1. A match score from 0-100 (calibrated as above)
+2. Key strengths (each tied to specific resume evidence)
+3. Gaps or concerns (every missing required skill named explicitly)
+4. A brief recommendation (Strong Hire / Hire / Maybe / Pass)
 
-Be concise, fair, and data-driven. Focus on skills, experience, and qualifications mentioned in the JD.`;
+Be concise, fair, and data-driven.`;
 
     const userPrompt = `## Job Description
 ${jobDescription}
@@ -81,9 +97,11 @@ ${resumeList}
 
 Please rank all candidates from best to worst fit. For each candidate provide:
 - **Score**: 0-100
-- **Strengths**: Key matching qualifications
-- **Gaps**: Missing requirements or concerns  
-- **Recommendation**: Hire / Maybe / Pass
+- **Strengths**: Key matching qualifications, each backed by resume evidence
+- **Gaps**: Every missing or weakly-evidenced required skill, named explicitly
+- **Recommendation**: Strong Hire / Hire / Maybe / Pass
+
+After the per-candidate sections, include a "## Summary Comparison" markdown table comparing the candidates side-by-side on the most important JD criteria.
 
 Format your response clearly with each candidate as a section.`;
 

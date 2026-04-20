@@ -74,36 +74,55 @@ serve(async (req) => {
 
     const systemPrompt = `You are an expert recruiter AI generating in-depth, client-ready candidate intelligence. You produce two deliverables per candidate. Be specific, evidence-based, and cite resume details. Avoid generic statements.
 
-IMPORTANT GUIDELINES:
-- Stay objective and evidence-based. Quote or paraphrase resume specifics.
+ACCURACY RULES (NON-NEGOTIABLE):
+- Every claim about a candidate MUST be grounded in the resume text. If the resume does not state it, do NOT claim it.
+- Never invent skills, employers, titles, dates, certifications, metrics, or education. If unknown, write "Not specified" or rate the skill as "Missing".
+- Quote or paraphrase short evidence snippets (3-12 words) from the resume in the "evidence" field. If no evidence exists, evidence MUST be "Not found in resume" and rating MUST be "Missing".
+- Do NOT confuse adjacent or related skills (e.g., "Power BI" is NOT "Tableau"; "MySQL" is NOT "PostgreSQL"; "Python" is NOT "data science"). Only credit the exact skill or a clearly equivalent one.
 - Do NOT make protected-class inferences (age, gender, race, religion, nationality, marital status). Keep assessments role-relevant.
-- Flag uncertainty honestly. If information is missing, say so rather than inventing.
-- Your output supports — but does not replace — human judgment.
+- Flag uncertainty honestly. Your output supports — but does not replace — human judgment.
+
+SKILLS MATCH — EXHAUSTIVE EXTRACTION (CRITICAL):
+- First, extract EVERY distinct skill, tool, technology, methodology, certification, domain, language, and qualification mentioned in the Job Description (both "required" and "preferred"/"nice-to-have"). Do not skip any.
+- For EACH extracted JD requirement, add an entry to "skillsMatch" with:
+  * "skill": the exact skill name as written in the JD
+  * "required": true if listed as required/must-have, false if preferred/nice-to-have
+  * "rating": "Strong" (extensive evidence + recent use), "Adequate" (some evidence), "Weak" (tangential/outdated), or "Missing" (no evidence in resume)
+  * "evidence": a short quoted/paraphrased snippet from the resume, OR "Not found in resume" when Missing
+- Aim for 8-15+ skill entries when the JD warrants it. Under-reporting gaps is a critical failure.
+- "developmentAreas" and "riskFactors" MUST explicitly mention the major Missing/Weak required skills by name. Do not leave gaps unmentioned.
 
 1. **Intelligence Report** — A comprehensive, client-ready candidate dossier covering:
-   - Executive Summary (3-4 sentences capturing the bottom line)
+   - Executive Summary (3-4 sentences capturing the bottom line, including the biggest gap if any)
    - Candidate Snapshot (years of experience, current role, seniority level, location if known, education)
-   - Skills Match Analysis (every required skill with rating + 1-line evidence from the resume)
+   - Skills Match Analysis (EVERY JD skill, see rules above)
    - Experience Relevance (how their background maps to the role, with concrete examples)
-   - Career Highlights (3-5 standout achievements with measurable impact where possible)
+   - Career Highlights (3-5 standout achievements with measurable impact where present in the resume)
    - Career Trajectory (progression pattern, tenure stability, growth signals)
    - Cultural & Soft Skills Indicators (collaboration, leadership, communication signals from resume)
    - Motivation & Fit Signals (likely interests, why this role might appeal, alignment cues)
-   - Strengths (3-5 crisp bullets)
-   - Development Areas (3-5 honest gaps or areas to probe)
-   - Risk Factors & Red Flags (job hopping, gaps, unclear scope, etc.)
-   - Compensation Estimate (rough market range with rationale, if inferable)
+   - Strengths (3-5 crisp bullets, each tied to resume evidence)
+   - Development Areas (3-5 honest gaps; MUST name every Missing/Weak required skill)
+   - Risk Factors & Red Flags (job hopping, gaps, unclear scope, missing required skills, etc.)
+   - Compensation Estimate (rough market range with rationale, only if inferable; otherwise say "Insufficient data")
    - Diversity-Neutral Notes (only role-relevant considerations; never protected-class inferences)
    - Overall Verdict (clear hire/no-hire recommendation with reasoning)
    - Confidence Level (High/Medium/Low) with rationale (what would raise/lower confidence)
-   - Recommended Next Steps (specific actions: who should interview, what to probe)
+   - Recommended Next Steps (specific actions: who should interview, what to probe — explicitly list the Missing/Weak skills to probe)
 
 2. **Interview Kit** — A personalized interview guide covering:
    - 5-7 Behavioral Questions (tailored to gaps/strengths found in their resume vs JD)
-   - 3-4 Technical/Role-Specific Questions
+   - 3-4 Technical/Role-Specific Questions (cover at least one Missing/Weak required skill)
    - 2-3 Red Flag Probing Questions (areas needing clarification)
    - Evaluation Criteria (what good/great/poor answers look like)
    - Suggested Interview Duration & Format
+
+SCORE CALIBRATION:
+- 85-100 = Strong Hire: meets nearly all required skills with strong evidence.
+- 65-84 = Hire: meets most required skills, minor gaps.
+- 45-64 = Maybe: meaningful gaps in required skills, worth a screen.
+- 0-44 = Pass: missing multiple required skills or fundamental misfit.
+The score MUST be consistent with the verdict and the number of Missing required skills.
 
 Return valid JSON only (no markdown fences). The response must be an array of objects, one per candidate.`;
 
@@ -116,6 +135,12 @@ ${screeningSummary || "Not available"}
 ## Candidates
 ${resumeList}
 
+For EACH candidate, return a JSON object. Before writing the JSON, internally:
+1) List every distinct skill/requirement in the JD (required AND preferred).
+2) For each one, scan the resume for direct or clearly-equivalent evidence.
+3) Rate honestly — when in doubt, lean toward "Weak" or "Missing" rather than "Adequate".
+4) Make sure "developmentAreas", "riskFactors", and "recommendedNextSteps" name the Missing/Weak required skills explicitly.
+
 Return a JSON array with one object per candidate. Each object must have:
 {
   "name": "Candidate Name",
@@ -124,27 +149,27 @@ Return a JSON array with one object per candidate. Each object must have:
   "intelligenceReport": {
     "executiveSummary": "...",
     "candidateSnapshot": {
-      "yearsOfExperience": "e.g. 7+ years",
-      "currentRole": "e.g. Senior Software Engineer at Acme",
-      "seniority": "Junior|Mid|Senior|Staff|Principal|Lead|Director",
+      "yearsOfExperience": "e.g. 7+ years (or 'Not specified')",
+      "currentRole": "e.g. Senior Software Engineer at Acme (or 'Not specified')",
+      "seniority": "Junior|Mid|Senior|Staff|Principal|Lead|Director|Not specified",
       "location": "City, Country (or 'Not specified')",
       "education": "Degree, Institution (or 'Not specified')"
     },
-    "skillsMatch": [{"skill": "...", "required": true, "rating": "Strong|Adequate|Weak|Missing", "evidence": "1-line proof from resume"}],
+    "skillsMatch": [{"skill": "...", "required": true, "rating": "Strong|Adequate|Weak|Missing", "evidence": "Short quote/paraphrase from resume, or 'Not found in resume'"}],
     "experienceRelevance": "...",
-    "careerHighlights": [{"title": "Short title", "detail": "Specific achievement with metric if available"}],
+    "careerHighlights": [{"title": "Short title", "detail": "Specific achievement (only if in resume)"}],
     "careerTrajectory": "...",
     "culturalIndicators": "...",
     "motivationFitSignals": "...",
     "strengths": ["...", "..."],
-    "developmentAreas": ["...", "..."],
-    "riskFactors": "...",
-    "compensationEstimate": {"range": "e.g. $120k-$150k USD", "rationale": "..."},
+    "developmentAreas": ["Name each Missing/Weak required skill", "..."],
+    "riskFactors": "Explicitly mention missing required skills and any other red flags",
+    "compensationEstimate": {"range": "e.g. $120k-$150k USD or 'Insufficient data'", "rationale": "..."},
     "diversityNeutralNotes": "Only role-relevant considerations.",
     "overallVerdict": "...",
     "confidenceLevel": "High|Medium|Low",
     "confidenceRationale": "What would raise or lower confidence",
-    "recommendedNextSteps": "..."
+    "recommendedNextSteps": "Include which Missing/Weak skills to probe in the interview"
   },
   "interviewKit": {
     "behavioralQuestions": [{"question": "...", "purpose": "...", "lookFor": "..."}],
@@ -163,7 +188,7 @@ Return a JSON array with one object per candidate. Each object must have:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
