@@ -23,13 +23,54 @@ const recommendationStyle = (rec: string) => {
 
 type Section = "strengths" | "gaps" | "recommendation" | null;
 
+interface MarkdownTable {
+  kind: "table";
+  headers: string[];
+  rows: string[][];
+}
+
+type IntroBlock = string | MarkdownTable;
+
 interface CandidateBlock {
   name: string;
   score?: number;
   recommendation?: string;
   strengths: string[];
   gaps: string[];
-  notes: string[];
+  notes: (string | MarkdownTable)[];
+}
+
+// Parse a contiguous block of markdown table lines starting at index `i`.
+// Returns the table and the index AFTER the last consumed line, or null if not a table.
+function tryParseTable(
+  lines: string[],
+  i: number,
+  stripStars: (s: string) => string
+): { table: MarkdownTable; next: number } | null {
+  const headerLine = lines[i]?.trim();
+  const sepLine = lines[i + 1]?.trim();
+  if (!headerLine || !sepLine) return null;
+  if (!headerLine.includes("|")) return null;
+  // Separator line: | :--- | :--- | etc
+  if (!/^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(sepLine)) return null;
+
+  const splitRow = (row: string) =>
+    row
+      .replace(/^\|/, "")
+      .replace(/\|$/, "")
+      .split("|")
+      .map((c) => stripStars(c.trim()));
+
+  const headers = splitRow(headerLine);
+  const rows: string[][] = [];
+  let j = i + 2;
+  while (j < lines.length) {
+    const row = lines[j].trim();
+    if (!row || !row.includes("|")) break;
+    rows.push(splitRow(row));
+    j++;
+  }
+  return { table: { kind: "table", headers, rows }, next: j };
 }
 
 function parseResult(raw: string): { intro: string[]; candidates: CandidateBlock[] } {
