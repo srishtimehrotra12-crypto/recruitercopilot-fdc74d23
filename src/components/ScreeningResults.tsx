@@ -287,12 +287,17 @@ export function ScreeningResults({ result, isScreening }: ScreeningResultsProps)
       {result && (
         <div className="space-y-5">
           {intro.length > 0 && (
-            <div className="text-sm text-muted-foreground space-y-1">
-              {intro.map((line, i) => (
-                <p key={i}>{renderInline(line, `intro-${i}`)}</p>
-              ))}
+            <div className="text-sm text-muted-foreground space-y-2">
+              {intro.map((line, i) =>
+                typeof line === "string" ? (
+                  <p key={i}>{renderInline(line, `intro-${i}`)}</p>
+                ) : (
+                  <ComparisonTable key={i} table={line} />
+                )
+              )}
             </div>
           )}
+
 
           {candidates.map((c, idx) => {
             const tone = scoreTone(c.score ?? 0);
@@ -398,10 +403,14 @@ export function ScreeningResults({ result, isScreening }: ScreeningResultsProps)
 
                   {/* Notes */}
                   {c.notes.length > 0 && (
-                    <div className="text-sm text-foreground/80 space-y-1 pt-1 border-t border-border">
-                      {c.notes.map((n, i) => (
-                        <p key={i}>{renderInline(n, `n-${idx}-${i}`)}</p>
-                      ))}
+                    <div className="text-sm text-foreground/80 space-y-2 pt-1 border-t border-border">
+                      {c.notes.map((n, i) =>
+                        typeof n === "string" ? (
+                          <p key={i}>{renderInline(n, `n-${idx}-${i}`)}</p>
+                        ) : (
+                          <ComparisonTable key={i} table={n} />
+                        )
+                      )}
                     </div>
                   )}
                 </div>
