@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ListChecks, Loader2, Sparkles, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import { ListChecks, Loader2, Sparkles, RefreshCw, ChevronDown, ChevronUp, Merge } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -8,6 +9,7 @@ interface JdSkill {
   skill: string;
   category: string;
   evidence?: string;
+  aliases?: string[];
 }
 
 interface ParsedJd {
