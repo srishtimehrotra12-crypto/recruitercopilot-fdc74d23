@@ -227,9 +227,15 @@ export function JdSkillsPreview({ jobDescription }: JdSkillsPreviewProps) {
             </div>
           )}
 
-          <p className="text-[11px] text-muted-foreground">
-            Hover any skill chip to see the evidence snippet from the JD. If something is missing, edit the JD above and re-parse.
-          </p>
+          <div className="flex items-center justify-between gap-3 flex-wrap text-[11px] text-muted-foreground">
+            <span>Hover any chip to see the evidence snippet and any merged variants from the JD.</span>
+            {mergedTotal > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+                <Merge className="w-3 h-3" />
+                {mergedTotal} skill{mergedTotal === 1 ? "" : "s"} deduplicated
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
