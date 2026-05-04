@@ -336,13 +336,11 @@ export function MatchBreakdown({ reports }: MatchBreakdownProps) {
                     {matched.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {matched.map((s, i) => (
-                          <span
+                          <SkillChip
                             key={i}
+                            skill={s}
                             className="text-xs bg-white border border-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full"
-                            title={s.evidence}
-                          >
-                            {s.skill}
-                          </span>
+                          />
                         ))}
                       </div>
                     ) : (
