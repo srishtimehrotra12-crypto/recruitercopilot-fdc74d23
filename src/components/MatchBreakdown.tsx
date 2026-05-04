@@ -363,18 +363,15 @@ export function MatchBreakdown({ reports }: MatchBreakdownProps) {
                     {missing.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {missing.map((s, i) => (
-                          <span
+                          <SkillChip
                             key={i}
+                            skill={s}
                             className={`text-xs px-2 py-0.5 rounded-full border ${
                               s.rating === "Missing"
                                 ? "bg-white border-red-200 text-red-800"
                                 : "bg-white border-amber-200 text-amber-800"
                             }`}
-                            title={s.evidence}
-                          >
-                            {s.skill}
-                            {s.required && <span className="ml-1 font-bold">*</span>}
-                          </span>
+                          />
                         ))}
                       </div>
                     ) : (
