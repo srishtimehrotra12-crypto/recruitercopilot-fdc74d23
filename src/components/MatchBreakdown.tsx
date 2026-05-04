@@ -74,7 +74,54 @@ const buildFitSummary = (report: CandidateReport): string => {
   return report.intelligenceReport.overallVerdict || "No summary available.";
 };
 
-export function MatchBreakdown({ reports }: MatchBreakdownProps) {
+const ratingTone: Record<SkillMatch["rating"], string> = {
+  Strong: "text-emerald-700",
+  Adequate: "text-sky-700",
+  Weak: "text-amber-700",
+  Missing: "text-red-700",
+};
+
+interface SkillChipProps {
+  skill: SkillMatch;
+  className: string;
+}
+
+function SkillChip({ skill, className }: SkillChipProps) {
+  const evidence = skill.evidence?.trim();
+  return (
+    <Tooltip delayDuration={150}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className={`${className} cursor-help focus:outline-none focus:ring-2 focus:ring-primary/40`}
+        >
+          {skill.skill}
+          {skill.required && <span className="ml-1 font-bold">*</span>}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs p-3 space-y-1.5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-semibold text-foreground">Why this rating?</span>
+          <span className={`text-[10px] font-bold uppercase tracking-wider ${ratingTone[skill.rating]}`}>
+            {skill.rating}
+          </span>
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {evidence && evidence.length > 0
+            ? evidence
+            : skill.rating === "Missing"
+              ? "No evidence of this skill was found in the resume."
+              : "No specific evidence snippet was provided."}
+        </p>
+        {skill.required && (
+          <p className="text-[10px] text-muted-foreground italic">Required by the job description</p>
+        )}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+
   const [minScore, setMinScore] = useState(0);
   const [selectedVerdicts, setSelectedVerdicts] = useState<Set<VerdictKey>>(new Set());
 
