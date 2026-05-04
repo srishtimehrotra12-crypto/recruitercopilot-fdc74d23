@@ -6,6 +6,7 @@ import { CandidateReports } from "@/components/CandidateReports";
 import { CandidateComparison } from "@/components/CandidateComparison";
 import { MatchBreakdown } from "@/components/MatchBreakdown";
 import { HistoryPanel } from "@/components/HistoryPanel";
+import { JdSkillsPreview } from "@/components/JdSkillsPreview";
 import { AiDisclaimer } from "@/components/AiDisclaimer";
 import { useScreening } from "@/hooks/useScreening";
 import { useHistory } from "@/hooks/useHistory";
@@ -183,6 +184,9 @@ const Index = () => {
             </div>
           )}
         </StepCard>
+
+        {/* JD parser preview */}
+        {jobDescription.trim() && <JdSkillsPreview jobDescription={jobDescription} />}
 
         {/* Step 2 — Resumes */}
         <StepCard
