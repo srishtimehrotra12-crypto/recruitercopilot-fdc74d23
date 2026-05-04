@@ -10,8 +10,16 @@ Rules:
 - Extract EVERY skill, tool, technology, framework, methodology, certification, language, and domain expertise mentioned.
 - Classify each as either "required" (must-have, hard requirement, "must", "required", listed in qualifications/requirements) or "preferred" (nice-to-have, "preferred", "bonus", "plus", "good to have").
 - Use the candidate-facing skill name (e.g., "Power BI", "SQL", "Stakeholder Management"), not whole sentences.
+- DEDUPLICATE aggressively. Merge synonyms, abbreviations, and trivial variants into ONE canonical skill:
+  * Abbreviations: "JS" + "JavaScript" -> "JavaScript"; "TS" -> "TypeScript"; "ML" -> "Machine Learning"; "K8s" -> "Kubernetes"; "PM" -> "Project Management".
+  * Plural/casing/spacing/punctuation: "Node.js" / "NodeJS" / "node js" -> "Node.js"; "Power-BI" -> "Power BI".
+  * Vendor/product equivalents: "MS Excel" + "Microsoft Excel" + "Excel" -> "Microsoft Excel"; "GCP" + "Google Cloud Platform" -> "Google Cloud Platform".
+  * Pick the most widely recognized full name as canonical.
+- For every merged skill, list ALL the original surface forms found in the JD in "aliases" (excluding the canonical name itself). If no merge happened, return an empty aliases array.
+- If the same skill appears as both required and preferred, keep it ONLY in required.
 - Also extract role meta: job title, seniority, years of experience required, and key responsibilities (short bullets).
-- Be exhaustive. Do not invent skills not present in the JD. Do not group multiple skills into one chip.`;
+- Be exhaustive. Do not invent skills not present in the JD. Do not group genuinely different skills into one chip.`;
+
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -63,6 +71,11 @@ Deno.serve(async (req: Request) => {
                           enum: ["technical", "tool", "soft", "domain", "certification", "language", "other"],
                         },
                         evidence: { type: "string", description: "Short quote/phrase from the JD." },
+                        aliases: {
+                          type: "array",
+                          items: { type: "string" },
+                          description: "Other surface forms / synonyms / abbreviations from the JD merged into this skill.",
+                        },
                       },
                       required: ["skill", "category"],
                       additionalProperties: false,
@@ -79,6 +92,11 @@ Deno.serve(async (req: Request) => {
                           enum: ["technical", "tool", "soft", "domain", "certification", "language", "other"],
                         },
                         evidence: { type: "string" },
+                        aliases: {
+                          type: "array",
+                          items: { type: "string" },
+                          description: "Other surface forms / synonyms / abbreviations from the JD merged into this skill.",
+                        },
                       },
                       required: ["skill", "category"],
                       additionalProperties: false,
@@ -126,6 +144,40 @@ Deno.serve(async (req: Request) => {
       });
     }
     const parsed = JSON.parse(toolCall.function.arguments);
+
+    // Safety net: dedupe by normalized skill name and merge aliases.
+    const normalize = (s: string) =>
+      s.toLowerCase().replace(/[\.\-_/\\]/g, " ").replace(/\s+/g, " ").trim();
+    const dedupe = (list: any[] = []) => {
+      const map = new Map<string, any>();
+      for (const item of list) {
+        if (!item?.skill) continue;
+        const key = normalize(item.skill);
+        if (!map.has(key)) {
+          map.set(key, { ...item, aliases: Array.isArray(item.aliases) ? [...item.aliases] : [] });
+        } else {
+          const existing = map.get(key);
+          const merged = new Set<string>(existing.aliases);
+          (item.aliases || []).forEach((a: string) => merged.add(a));
+          if (item.skill !== existing.skill) merged.add(item.skill);
+          existing.aliases = [...merged];
+          if (!existing.evidence && item.evidence) existing.evidence = item.evidence;
+        }
+      }
+      // Clean aliases: remove empties and any that equal the canonical name
+      return [...map.values()].map((v) => ({
+        ...v,
+        aliases: (v.aliases || []).filter(
+          (a: string) => a && normalize(a) !== normalize(v.skill)
+        ),
+      }));
+    };
+
+    parsed.requiredSkills = dedupe(parsed.requiredSkills);
+    const requiredKeys = new Set(parsed.requiredSkills.map((s: any) => normalize(s.skill)));
+    parsed.preferredSkills = dedupe(parsed.preferredSkills).filter(
+      (s: any) => !requiredKeys.has(normalize(s.skill))
+    );
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
