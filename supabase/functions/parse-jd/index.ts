@@ -92,6 +92,11 @@ Deno.serve(async (req: Request) => {
                           enum: ["technical", "tool", "soft", "domain", "certification", "language", "other"],
                         },
                         evidence: { type: "string" },
+                        aliases: {
+                          type: "array",
+                          items: { type: "string" },
+                          description: "Other surface forms / synonyms / abbreviations from the JD merged into this skill.",
+                        },
                       },
                       required: ["skill", "category"],
                       additionalProperties: false,
