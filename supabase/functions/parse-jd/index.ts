@@ -10,8 +10,16 @@ Rules:
 - Extract EVERY skill, tool, technology, framework, methodology, certification, language, and domain expertise mentioned.
 - Classify each as either "required" (must-have, hard requirement, "must", "required", listed in qualifications/requirements) or "preferred" (nice-to-have, "preferred", "bonus", "plus", "good to have").
 - Use the candidate-facing skill name (e.g., "Power BI", "SQL", "Stakeholder Management"), not whole sentences.
+- DEDUPLICATE aggressively. Merge synonyms, abbreviations, and trivial variants into ONE canonical skill:
+  * Abbreviations: "JS" + "JavaScript" -> "JavaScript"; "TS" -> "TypeScript"; "ML" -> "Machine Learning"; "K8s" -> "Kubernetes"; "PM" -> "Project Management".
+  * Plural/casing/spacing/punctuation: "Node.js" / "NodeJS" / "node js" -> "Node.js"; "Power-BI" -> "Power BI".
+  * Vendor/product equivalents: "MS Excel" + "Microsoft Excel" + "Excel" -> "Microsoft Excel"; "GCP" + "Google Cloud Platform" -> "Google Cloud Platform".
+  * Pick the most widely recognized full name as canonical.
+- For every merged skill, list ALL the original surface forms found in the JD in "aliases" (excluding the canonical name itself). If no merge happened, return an empty aliases array.
+- If the same skill appears as both required and preferred, keep it ONLY in required.
 - Also extract role meta: job title, seniority, years of experience required, and key responsibilities (short bullets).
-- Be exhaustive. Do not invent skills not present in the JD. Do not group multiple skills into one chip.`;
+- Be exhaustive. Do not invent skills not present in the JD. Do not group genuinely different skills into one chip.`;
+
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
