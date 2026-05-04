@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Target, CheckCircle2, XCircle, TrendingUp, Sparkles, Filter, X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import type { CandidateReport } from "@/types/reports";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { CandidateReport, SkillMatch } from "@/types/reports";
 
 interface MatchBreakdownProps {
   reports: CandidateReport[];
