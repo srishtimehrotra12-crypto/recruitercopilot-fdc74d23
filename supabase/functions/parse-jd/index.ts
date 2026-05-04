@@ -145,6 +145,40 @@ Deno.serve(async (req: Request) => {
     }
     const parsed = JSON.parse(toolCall.function.arguments);
 
+    // Safety net: dedupe by normalized skill name and merge aliases.
+    const normalize = (s: string) =>
+      s.toLowerCase().replace(/[\.\-_/\\]/g, " ").replace(/\s+/g, " ").trim();
+    const dedupe = (list: any[] = []) => {
+      const map = new Map<string, any>();
+      for (const item of list) {
+        if (!item?.skill) continue;
+        const key = normalize(item.skill);
+        if (!map.has(key)) {
+          map.set(key, { ...item, aliases: Array.isArray(item.aliases) ? [...item.aliases] : [] });
+        } else {
+          const existing = map.get(key);
+          const merged = new Set<string>(existing.aliases);
+          (item.aliases || []).forEach((a: string) => merged.add(a));
+          if (item.skill !== existing.skill) merged.add(item.skill);
+          existing.aliases = [...merged];
+          if (!existing.evidence && item.evidence) existing.evidence = item.evidence;
+        }
+      }
+      // Clean aliases: remove empties and any that equal the canonical name
+      return [...map.values()].map((v) => ({
+        ...v,
+        aliases: (v.aliases || []).filter(
+          (a: string) => a && normalize(a) !== normalize(v.skill)
+        ),
+      }));
+    };
+
+    parsed.requiredSkills = dedupe(parsed.requiredSkills);
+    const requiredKeys = new Set(parsed.requiredSkills.map((s: any) => normalize(s.skill)));
+    parsed.preferredSkills = dedupe(parsed.preferredSkills).filter(
+      (s: any) => !requiredKeys.has(normalize(s.skill))
+    );
+
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
