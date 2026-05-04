@@ -185,6 +185,9 @@ const Index = () => {
           )}
         </StepCard>
 
+        {/* JD parser preview */}
+        {jobDescription.trim() && <JdSkillsPreview jobDescription={jobDescription} />}
+
         {/* Step 2 — Resumes */}
         <StepCard
           step={2}
