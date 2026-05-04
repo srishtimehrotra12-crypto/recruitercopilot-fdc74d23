@@ -121,6 +121,8 @@ function SkillChip({ skill, className }: SkillChipProps) {
   );
 }
 
+export function MatchBreakdown({ reports }: MatchBreakdownProps) {
+
 
   const [minScore, setMinScore] = useState(0);
   const [selectedVerdicts, setSelectedVerdicts] = useState<Set<VerdictKey>>(new Set());
