@@ -68,17 +68,66 @@ export function JdSkillsPreview({ jobDescription }: JdSkillsPreviewProps) {
       <p className="text-xs text-muted-foreground italic">None detected</p>
     ) : (
       <div className="flex flex-wrap gap-1.5">
-        {skills.map((s, i) => (
-          <span
-            key={`${s.skill}-${i}`}
-            className={`text-xs px-2.5 py-1 rounded-full border ${categoryColor[s.category] ?? categoryColor.other}`}
-            title={s.evidence ? `“${s.evidence}”` : s.category}
-          >
-            {s.skill}
-          </span>
-        ))}
+        {skills.map((s, i) => {
+          const aliases = (s.aliases || []).filter(Boolean);
+          const hasMerges = aliases.length > 0;
+          return (
+            <Tooltip key={`${s.skill}-${i}`} delayDuration={150}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border cursor-help focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                    categoryColor[s.category] ?? categoryColor.other
+                  }`}
+                >
+                  <span>{s.skill}</span>
+                  {hasMerges && (
+                    <span className="inline-flex items-center gap-0.5 ml-0.5 px-1.5 py-0.5 rounded-full bg-white/70 border border-black/10 text-[10px] font-bold leading-none">
+                      <Merge className="w-2.5 h-2.5" />
+                      {aliases.length}
+                    </span>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs p-3 space-y-2">
+                <div className="text-xs font-semibold text-foreground capitalize">
+                  {s.category}
+                </div>
+                {hasMerges && (
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      Merged variants
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {aliases.map((a, j) => (
+                        <span
+                          key={j}
+                          className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-foreground border border-border"
+                        >
+                          {a}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {s.evidence && (
+                  <p className="text-xs leading-relaxed text-muted-foreground italic">
+                    “{s.evidence}”
+                  </p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
       </div>
     );
+
+  const mergedTotal = parsed
+    ? [...parsed.requiredSkills, ...parsed.preferredSkills].reduce(
+        (n, s) => n + ((s.aliases?.length || 0) > 0 ? 1 : 0),
+        0
+      )
+    : 0;
 
   return (
     <div className="bg-card border border-border rounded-xl p-5 card-shadow">
