@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Target, CheckCircle2, XCircle, TrendingUp, Sparkles, Filter, X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import type { CandidateReport } from "@/types/reports";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { CandidateReport, SkillMatch } from "@/types/reports";
 
 interface MatchBreakdownProps {
   reports: CandidateReport[];
@@ -73,7 +74,56 @@ const buildFitSummary = (report: CandidateReport): string => {
   return report.intelligenceReport.overallVerdict || "No summary available.";
 };
 
+const ratingTone: Record<SkillMatch["rating"], string> = {
+  Strong: "text-emerald-700",
+  Adequate: "text-sky-700",
+  Weak: "text-amber-700",
+  Missing: "text-red-700",
+};
+
+interface SkillChipProps {
+  skill: SkillMatch;
+  className: string;
+}
+
+function SkillChip({ skill, className }: SkillChipProps) {
+  const evidence = skill.evidence?.trim();
+  return (
+    <Tooltip delayDuration={150}>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className={`${className} cursor-help focus:outline-none focus:ring-2 focus:ring-primary/40`}
+        >
+          {skill.skill}
+          {skill.required && <span className="ml-1 font-bold">*</span>}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs p-3 space-y-1.5">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-semibold text-foreground">Why this rating?</span>
+          <span className={`text-[10px] font-bold uppercase tracking-wider ${ratingTone[skill.rating]}`}>
+            {skill.rating}
+          </span>
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          {evidence && evidence.length > 0
+            ? evidence
+            : skill.rating === "Missing"
+              ? "No evidence of this skill was found in the resume."
+              : "No specific evidence snippet was provided."}
+        </p>
+        {skill.required && (
+          <p className="text-[10px] text-muted-foreground italic">Required by the job description</p>
+        )}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function MatchBreakdown({ reports }: MatchBreakdownProps) {
+
+
   const [minScore, setMinScore] = useState(0);
   const [selectedVerdicts, setSelectedVerdicts] = useState<Set<VerdictKey>>(new Set());
 
@@ -286,13 +336,11 @@ export function MatchBreakdown({ reports }: MatchBreakdownProps) {
                     {matched.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {matched.map((s, i) => (
-                          <span
+                          <SkillChip
                             key={i}
+                            skill={s}
                             className="text-xs bg-white border border-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full"
-                            title={s.evidence}
-                          >
-                            {s.skill}
-                          </span>
+                          />
                         ))}
                       </div>
                     ) : (
@@ -315,18 +363,15 @@ export function MatchBreakdown({ reports }: MatchBreakdownProps) {
                     {missing.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
                         {missing.map((s, i) => (
-                          <span
+                          <SkillChip
                             key={i}
+                            skill={s}
                             className={`text-xs px-2 py-0.5 rounded-full border ${
                               s.rating === "Missing"
                                 ? "bg-white border-red-200 text-red-800"
                                 : "bg-white border-amber-200 text-amber-800"
                             }`}
-                            title={s.evidence}
-                          >
-                            {s.skill}
-                            {s.required && <span className="ml-1 font-bold">*</span>}
-                          </span>
+                          />
                         ))}
                       </div>
                     ) : (
