@@ -61,8 +61,13 @@ export default function Auth() {
         },
       });
       if (error) throw error;
-      toast({ title: "Account created", description: "You're signed in." });
-      navigate("/", { replace: true });
+      if (data.session) {
+        toast({ title: "Account created", description: "You're signed in." });
+        navigate("/", { replace: true });
+      } else {
+        toast({ title: "Check your email", description: "Click the confirmation link to finish signing up." });
+        setTab("login");
+      }
     } catch (err: any) {
       toast({ title: "Signup failed", description: err.message, variant: "destructive" });
     } finally {
