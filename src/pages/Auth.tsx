@@ -52,7 +52,7 @@ export default function Auth() {
       nameSchema.parse(fullName);
       emailSchema.parse(email);
       passwordSchema.parse(password);
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
