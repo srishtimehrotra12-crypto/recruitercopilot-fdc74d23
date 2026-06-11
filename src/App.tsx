@@ -9,6 +9,8 @@ import AppLayout from "@/components/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Screening from "./pages/Index";
+import Jobs from "./pages/Jobs";
+import Pipeline from "./pages/Pipeline";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -32,14 +34,8 @@ const App = () => (
             >
               <Route path="/" element={<Dashboard />} />
               <Route path="/screening" element={<Screening />} />
-              <Route
-                path="/jobs"
-                element={<ComingSoon title="Jobs" description="Create and manage job openings." />}
-              />
-              <Route
-                path="/pipeline"
-                element={<ComingSoon title="ATS Pipeline" description="Kanban board to track candidates through every stage." />}
-              />
+              <Route path="/jobs" element={<Jobs />} />
+              <Route path="/pipeline" element={<Pipeline />} />
               <Route
                 path="/talent"
                 element={<ComingSoon title="Talent Database" description="Search and filter every candidate you've ever sourced." />}
