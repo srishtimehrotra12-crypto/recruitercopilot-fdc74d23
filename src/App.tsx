@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Screening from "./pages/Index";
 import Jobs from "./pages/Jobs";
 import Pipeline from "./pages/Pipeline";
+import Talent from "./pages/Talent";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -36,10 +37,7 @@ const App = () => (
               <Route path="/screening" element={<Screening />} />
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/pipeline" element={<Pipeline />} />
-              <Route
-                path="/talent"
-                element={<ComingSoon title="Talent Database" description="Search and filter every candidate you've ever sourced." />}
-              />
+              <Route path="/talent" element={<Talent />} />
               <Route
                 path="/sourcing"
                 element={<ComingSoon title="Sourcing" description="Import profiles and build boolean searches." />}
