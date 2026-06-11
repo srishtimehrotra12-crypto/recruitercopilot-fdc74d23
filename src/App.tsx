@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Screening from "./pages/Index";
 import Jobs from "./pages/Jobs";
 import Pipeline from "./pages/Pipeline";
+import Talent from "./pages/Talent";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
