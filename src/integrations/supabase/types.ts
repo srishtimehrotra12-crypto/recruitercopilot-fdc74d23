@@ -14,6 +14,196 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          application_id: string | null
+          candidate_id: string | null
+          created_at: string
+          id: string
+          job_id: string | null
+          message: string | null
+          metadata: Json | null
+          owner_id: string
+          type: string
+        }
+        Insert: {
+          application_id?: string | null
+          candidate_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          message?: string | null
+          metadata?: Json | null
+          owner_id: string
+          type: string
+        }
+        Update: {
+          application_id?: string | null
+          candidate_id?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          message?: string | null
+          metadata?: Json | null
+          owner_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          id: string
+          job_id: string
+          notes: string | null
+          owner_id: string
+          position: number
+          score: number | null
+          stage: Database["public"]["Enums"]["app_stage"]
+          updated_at: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          notes?: string | null
+          owner_id: string
+          position?: number
+          score?: number | null
+          stage?: Database["public"]["Enums"]["app_stage"]
+          updated_at?: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          notes?: string | null
+          owner_id?: string
+          position?: number
+          score?: number | null
+          stage?: Database["public"]["Enums"]["app_stage"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      candidates: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          owner_id: string
+          parsed_json: Json | null
+          phone: string | null
+          resume_text: string | null
+          resume_url: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          owner_id: string
+          parsed_json?: Json | null
+          phone?: string | null
+          resume_text?: string | null
+          resume_url?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          parsed_json?: Json | null
+          phone?: string | null
+          resume_text?: string | null
+          resume_url?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jobs: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          location: string | null
+          owner_id: string
+          status: Database["public"]["Enums"]["job_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          owner_id: string
+          status?: Database["public"]["Enums"]["job_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          owner_id?: string
+          status?: Database["public"]["Enums"]["job_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -77,6 +267,14 @@ export type Database = {
     }
     Enums: {
       app_role: "recruiter" | "admin"
+      app_stage:
+        | "applied"
+        | "screening"
+        | "interview"
+        | "offer"
+        | "hired"
+        | "rejected"
+      job_status: "open" | "paused" | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -205,6 +403,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["recruiter", "admin"],
+      app_stage: [
+        "applied",
+        "screening",
+        "interview",
+        "offer",
+        "hired",
+        "rejected",
+      ],
+      job_status: ["open", "paused", "closed"],
     },
   },
 } as const
