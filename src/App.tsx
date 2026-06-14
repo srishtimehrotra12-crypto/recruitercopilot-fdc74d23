@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
-import Auth from "./pages/Auth";
+
 import Dashboard from "./pages/Dashboard";
 import Screening from "./pages/Index";
 import Jobs from "./pages/Jobs";
@@ -25,7 +25,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/auth" element={<Auth />} />
+            
             <Route
               element={
                 <ProtectedRoute>
