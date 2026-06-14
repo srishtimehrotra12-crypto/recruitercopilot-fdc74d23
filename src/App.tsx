@@ -12,6 +12,7 @@ import Screening from "./pages/Index";
 import Jobs from "./pages/Jobs";
 import Pipeline from "./pages/Pipeline";
 import Talent from "./pages/Talent";
+import Sourcing from "./pages/Sourcing";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -38,10 +39,7 @@ const App = () => (
               <Route path="/jobs" element={<Jobs />} />
               <Route path="/pipeline" element={<Pipeline />} />
               <Route path="/talent" element={<Talent />} />
-              <Route
-                path="/sourcing"
-                element={<ComingSoon title="Sourcing" description="Import profiles and build boolean searches." />}
-              />
+              <Route path="/sourcing" element={<Sourcing />} />
               <Route
                 path="/analytics"
                 element={<ComingSoon title="Analytics" description="Funnel metrics, time-to-hire, and source effectiveness." />}
