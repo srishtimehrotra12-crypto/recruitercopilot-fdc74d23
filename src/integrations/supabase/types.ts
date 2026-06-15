@@ -34,7 +34,7 @@ export type Database = {
           job_id?: string | null
           message?: string | null
           metadata?: Json | null
-          owner_id: string
+          owner_id?: string
           type: string
         }
         Update: {
@@ -91,7 +91,7 @@ export type Database = {
           id?: string
           job_id: string
           notes?: string | null
-          owner_id: string
+          owner_id?: string
           position?: number
           score?: number | null
           stage?: Database["public"]["Enums"]["app_stage"]
@@ -149,7 +149,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
-          owner_id: string
+          owner_id?: string
           parsed_json?: Json | null
           phone?: string | null
           resume_text?: string | null
@@ -193,7 +193,7 @@ export type Database = {
           description?: string | null
           id?: string
           location?: string | null
-          owner_id: string
+          owner_id?: string
           status?: Database["public"]["Enums"]["job_status"]
           title: string
           updated_at?: string

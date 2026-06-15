@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { SHARED_OWNER_ID } from "@/lib/workspace";
 import { toast } from "sonner";
 import { Sparkles, Loader2, UserPlus, GitMerge, AlertTriangle, Search, RotateCcw } from "lucide-react";
 
@@ -57,7 +57,6 @@ const dedupeArr = (arr: string[]) => {
 };
 
 export default function Sourcing() {
-  const { user } = useAuth();
   const [rawText, setRawText] = useState("");
   const [parsing, setParsing] = useState(false);
   const [profile, setProfile] = useState<ParsedProfile | null>(null);
@@ -171,11 +170,10 @@ export default function Sourcing() {
   };
 
   const saveNew = async () => {
-    if (!user) return toast.error("No session");
     if (!form.name.trim()) return toast.error("Name is required");
     setSaving(true);
-    const { error } = await supabase.from("candidates").insert({
-      owner_id: user.id,
+    const { data, error } = await supabase.from("candidates").insert({
+      owner_id: SHARED_OWNER_ID,
       name: form.name.trim(),
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
@@ -184,7 +182,15 @@ export default function Sourcing() {
       resume_text: form.resume_text.trim() || null,
       skills: splitList(form.skills),
       tags: splitList(form.tags),
-    });
+    }).select("id").single();
+    if (!error && data) {
+      await supabase.from("activity_log").insert({
+        owner_id: SHARED_OWNER_ID,
+        candidate_id: data.id,
+        type: "candidate_sourced",
+        message: `Sourced candidate: ${form.name.trim()}`,
+      });
+    }
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Candidate added to Talent DB");
@@ -193,7 +199,6 @@ export default function Sourcing() {
   };
 
   const mergeInto = async (existing: CandidateMatch) => {
-    if (!user) return toast.error("No session");
     setSaving(true);
     const mergedSkills = dedupeArr([...(existing.skills || []), ...splitList(form.skills)]);
     const mergedTags = dedupeArr([...(existing.tags || []), ...splitList(form.tags)]);
@@ -212,6 +217,12 @@ export default function Sourcing() {
       .eq("id", existing.id);
     setSaving(false);
     if (error) return toast.error(error.message);
+    await supabase.from("activity_log").insert({
+      owner_id: SHARED_OWNER_ID,
+      candidate_id: existing.id,
+      type: "candidate_merged",
+      message: `Merged sourced profile into ${existing.name}`,
+    });
     toast.success(`Merged into ${existing.name}`);
     reset();
     loadRecent();
