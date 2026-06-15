@@ -13,6 +13,7 @@ import Jobs from "./pages/Jobs";
 import Pipeline from "./pages/Pipeline";
 import Talent from "./pages/Talent";
 import Sourcing from "./pages/Sourcing";
+import Analytics from "./pages/Analytics";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -40,10 +41,7 @@ const App = () => (
               <Route path="/pipeline" element={<Pipeline />} />
               <Route path="/talent" element={<Talent />} />
               <Route path="/sourcing" element={<Sourcing />} />
-              <Route
-                path="/analytics"
-                element={<ComingSoon title="Analytics" description="Funnel metrics, time-to-hire, and source effectiveness." />}
-              />
+              <Route path="/analytics" element={<Analytics />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
