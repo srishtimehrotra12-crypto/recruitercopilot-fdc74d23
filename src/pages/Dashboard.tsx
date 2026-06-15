@@ -280,28 +280,132 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Get started</CardTitle>
-            <CardDescription>Run AI screening on a batch of resumes against a job description.</CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <KanbanSquare className="h-4 w-4 text-primary" /> Pipeline snapshot
+            </CardTitle>
+            <CardDescription>Current candidate distribution by hiring stage.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <Link to="/screening">
-                Start a screening <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+          <CardContent className="space-y-4">
+            <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+              {STAGES.map((stage) => (
+                <div key={stage} className="rounded-md border p-3">
+                  <div className="text-2xl font-semibold leading-none">{stageCounts[stage]}</div>
+                  <div className="text-xs text-muted-foreground capitalize mt-1">{stage}</div>
+                </div>
+              ))}
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold">Recent movement</h2>
+                <Button size="sm" variant="ghost" asChild>
+                  <Link to="/pipeline">Open pipeline <ArrowRight className="h-4 w-4" /></Link>
+                </Button>
+              </div>
+              {apps.slice(0, 5).length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">No pipeline activity yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {apps.slice(0, 5).map((app) => (
+                    <div key={app.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{app.candidate?.name ?? "Candidate"}</div>
+                        <div className="text-xs text-muted-foreground truncate">{app.job?.title ?? "Job"}</div>
+                      </div>
+                      <Badge variant={app.stage === "hired" ? "default" : app.stage === "rejected" ? "destructive" : "secondary"} className="capitalize">
+                        {app.stage}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Coming next</CardTitle>
-            <CardDescription>
-              Jobs, ATS Pipeline, Talent Database, Sourcing, Analytics — rolling out in upcoming phases.
-            </CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="h-4 w-4 text-primary" /> Activity feed
+            </CardTitle>
+            <CardDescription>Latest workspace updates.</CardDescription>
           </CardHeader>
+          <CardContent>
+            {activities.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">New jobs, candidates, merges, and stage changes will appear here.</p>
+            ) : (
+              <div className="space-y-3">
+                {activities.map((item) => {
+                  const Icon = activityIcon(item.type);
+                  return (
+                    <div key={item.id} className="flex gap-3">
+                      <div className="mt-0.5 h-8 w-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium leading-snug">{item.message || item.type.replaceAll("_", " ")}</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <CalendarClock className="h-3 w-3" /> {formatDateTime(item.created_at)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-primary" /> Active jobs
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {jobs.slice(0, 5).length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">No jobs yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {jobs.slice(0, 5).map((job) => (
+                  <div key={job.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{job.title}</div>
+                      <div className="text-xs text-muted-foreground truncate">{job.location || "No location set"}</div>
+                    </div>
+                    <Badge variant={job.status === "open" ? "default" : "secondary"} className="capitalize">{job.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" /> Quick actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2">
+            <Button variant="outline" asChild className="justify-start">
+              <Link to="/analytics"><BarChart3 className="h-4 w-4" /> View analytics</Link>
+            </Button>
+            <Button variant="outline" asChild className="justify-start">
+              <Link to="/screening"><Sparkles className="h-4 w-4" /> Run AI screening</Link>
+            </Button>
+            <Button variant="outline" asChild className="justify-start">
+              <Link to="/talent"><Users className="h-4 w-4" /> Search talent DB</Link>
+            </Button>
+            <Button variant="outline" asChild className="justify-start">
+              <Link to="/sourcing"><Search className="h-4 w-4" /> Source candidates</Link>
+            </Button>
+          </CardContent>
         </Card>
       </div>
     </div>
