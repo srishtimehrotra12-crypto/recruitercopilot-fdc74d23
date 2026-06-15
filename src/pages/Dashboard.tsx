@@ -346,7 +346,7 @@ export default function Dashboard() {
                         <Icon className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium leading-snug">{item.message || item.type.replaceAll("_", " ")}</div>
+                        <div className="text-sm font-medium leading-snug">{item.message || item.type.split("_").join(" ")}</div>
                         <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                           <CalendarClock className="h-3 w-3" /> {formatDateTime(item.created_at)}
                         </div>
