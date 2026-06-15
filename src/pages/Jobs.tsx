@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { SHARED_OWNER_ID } from "@/lib/workspace";
 import { toast } from "sonner";
 import { Briefcase, Plus, KanbanSquare } from "lucide-react";
 
@@ -27,7 +27,6 @@ type Job = {
 };
 
 export default function Jobs() {
-  const { user } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -67,15 +66,23 @@ export default function Jobs() {
   }, []);
 
   const createJob = async () => {
-    if (!user || !title.trim()) return;
+    if (!title.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from("jobs").insert({
-      owner_id: user.id,
+    const { data, error } = await supabase.from("jobs").insert({
+      owner_id: SHARED_OWNER_ID,
       title: title.trim(),
       description: description.trim() || null,
       location: location.trim() || null,
       status,
-    });
+    }).select("id").single();
+    if (!error && data) {
+      await supabase.from("activity_log").insert({
+        owner_id: SHARED_OWNER_ID,
+        job_id: data.id,
+        type: "job_created",
+        message: `Created job: ${title.trim()}`,
+      });
+    }
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Job created");
