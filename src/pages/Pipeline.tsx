@@ -5,7 +5,7 @@ import {
   useDraggable, useDroppable,
 } from "@dnd-kit/core";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { SHARED_OWNER_ID } from "@/lib/workspace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -89,7 +89,6 @@ function Column({ stage, label, apps }: { stage: Stage; label: string; apps: App
 }
 
 export default function Pipeline() {
-  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [jobId, setJobId] = useState<string>("");
@@ -162,26 +161,24 @@ export default function Pipeline() {
       setApps((cur) => cur.map((a) => (a.id === appId ? { ...a, stage: prev } : a)));
       return;
     }
-    if (user) {
-      await supabase.from("activity_log").insert({
-        owner_id: user.id,
-        application_id: appId,
-        candidate_id: app.candidate_id,
-        job_id: jobId,
-        type: "stage_change",
-        message: `Moved from ${prev} to ${overId}`,
-      });
-    }
+    await supabase.from("activity_log").insert({
+      owner_id: SHARED_OWNER_ID,
+      application_id: appId,
+      candidate_id: app.candidate_id,
+      job_id: jobId,
+      type: "stage_change",
+      message: `Moved ${app.candidate.name} from ${prev} to ${overId}`,
+    });
     toast.success(`Moved to ${overId}`);
   };
 
   const addCandidate = async () => {
-    if (!user || !jobId || !cName.trim()) return;
+    if (!jobId || !cName.trim()) return;
     setSaving(true);
     const { data: cand, error: e1 } = await supabase
       .from("candidates")
       .insert({
-        owner_id: user.id,
+        owner_id: SHARED_OWNER_ID,
         name: cName.trim(),
         email: cEmail.trim() || null,
         phone: cPhone.trim() || null,
@@ -194,7 +191,7 @@ export default function Pipeline() {
     const { data: appRow, error: e2 } = await supabase
       .from("applications")
       .insert({
-        owner_id: user.id,
+        owner_id: SHARED_OWNER_ID,
         job_id: jobId,
         candidate_id: cand.id,
         stage: cStage,
@@ -203,6 +200,14 @@ export default function Pipeline() {
       .single();
     setSaving(false);
     if (e2 || !appRow) return toast.error(e2?.message ?? "Failed");
+    await supabase.from("activity_log").insert({
+      owner_id: SHARED_OWNER_ID,
+      application_id: appRow.id,
+      candidate_id: cand.id,
+      job_id: jobId,
+      type: "candidate_added_to_pipeline",
+      message: `Added ${cand.name} to pipeline`,
+    });
     setApps((cur) => [...cur, { ...(appRow as any), candidate: cand }]);
     setAddOpen(false);
     setCName(""); setCEmail(""); setCPhone(""); setCNotes(""); setCStage("applied");

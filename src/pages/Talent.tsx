@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { SHARED_OWNER_ID } from "@/lib/workspace";
 import { toast } from "sonner";
 import { Users, Plus, Search, Sparkles, Mail, Phone, Tag, ChevronRight, Loader2 } from "lucide-react";
 
@@ -49,7 +49,6 @@ const splitList = (s: string) =>
   s.split(",").map((x) => x.trim()).filter(Boolean);
 
 export default function Talent() {
-  const { user, session } = useAuth();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,10 +112,10 @@ export default function Talent() {
   }, [candidates, query, tagFilter, skillFilter]);
 
   const createCandidate = async () => {
-    if (!user || !form.name.trim()) return;
+    if (!form.name.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from("candidates").insert({
-      owner_id: user.id,
+    const { data, error } = await supabase.from("candidates").insert({
+      owner_id: SHARED_OWNER_ID,
       name: form.name.trim(),
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
@@ -125,7 +124,15 @@ export default function Talent() {
       resume_text: form.resume_text.trim() || null,
       skills: splitList(form.skills),
       tags: splitList(form.tags),
-    });
+    }).select("id").single();
+    if (!error && data) {
+      await supabase.from("activity_log").insert({
+        owner_id: SHARED_OWNER_ID,
+        candidate_id: data.id,
+        type: "candidate_created",
+        message: `Added candidate: ${form.name.trim()}`,
+      });
+    }
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Candidate added");
@@ -142,7 +149,7 @@ export default function Talent() {
   };
 
   const generateQuestions = async () => {
-    if (!selected || !session) return;
+    if (!selected) return;
     setGenLoading(true);
     setQuestions([]);
     try {
