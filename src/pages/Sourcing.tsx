@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
-import { SHARED_OWNER_ID } from "@/lib/workspace";
 import { toast } from "sonner";
 import { Sparkles, Loader2, UserPlus, GitMerge, AlertTriangle, Search, RotateCcw } from "lucide-react";
 
@@ -173,7 +172,6 @@ export default function Sourcing() {
     if (!form.name.trim()) return toast.error("Name is required");
     setSaving(true);
     const { data, error } = await supabase.from("candidates").insert({
-      owner_id: SHARED_OWNER_ID,
       name: form.name.trim(),
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
@@ -185,7 +183,6 @@ export default function Sourcing() {
     }).select("id").single();
     if (!error && data) {
       await supabase.from("activity_log").insert({
-        owner_id: SHARED_OWNER_ID,
         candidate_id: data.id,
         type: "candidate_sourced",
         message: `Sourced candidate: ${form.name.trim()}`,
@@ -218,7 +215,6 @@ export default function Sourcing() {
     setSaving(false);
     if (error) return toast.error(error.message);
     await supabase.from("activity_log").insert({
-      owner_id: SHARED_OWNER_ID,
       candidate_id: existing.id,
       type: "candidate_merged",
       message: `Merged sourced profile into ${existing.name}`,

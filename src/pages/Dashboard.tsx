@@ -13,7 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
-import { SHARED_OWNER_ID } from "@/lib/workspace";
 import { toast } from "sonner";
 import {
   Activity, ArrowRight, BarChart3, Briefcase, CalendarClock, KanbanSquare,
@@ -132,7 +131,6 @@ export default function Dashboard() {
     if (!jobTitle.trim()) return;
     setSaving(true);
     const { data, error } = await supabase.from("jobs").insert({
-      owner_id: SHARED_OWNER_ID,
       title: jobTitle.trim(),
       description: jobDescription.trim() || null,
       location: jobLocation.trim() || null,
@@ -140,7 +138,6 @@ export default function Dashboard() {
     }).select("id").single();
     if (!error && data) {
       await supabase.from("activity_log").insert({
-        owner_id: SHARED_OWNER_ID,
         job_id: data.id,
         type: "job_created",
         message: `Created job: ${jobTitle.trim()}`,
@@ -158,7 +155,6 @@ export default function Dashboard() {
     if (!candidateForm.name.trim()) return;
     setSaving(true);
     const { data, error } = await supabase.from("candidates").insert({
-      owner_id: SHARED_OWNER_ID,
       name: candidateForm.name.trim(),
       email: candidateForm.email.trim() || null,
       source: candidateForm.source.trim() || "manual",
@@ -168,7 +164,6 @@ export default function Dashboard() {
     }).select("id").single();
     if (!error && data) {
       await supabase.from("activity_log").insert({
-        owner_id: SHARED_OWNER_ID,
         candidate_id: data.id,
         type: "candidate_created",
         message: `Added candidate: ${candidateForm.name.trim()}`,

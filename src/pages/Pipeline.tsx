@@ -5,7 +5,6 @@ import {
   useDraggable, useDroppable,
 } from "@dnd-kit/core";
 import { supabase } from "@/integrations/supabase/client";
-import { SHARED_OWNER_ID } from "@/lib/workspace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -162,7 +161,6 @@ export default function Pipeline() {
       return;
     }
     await supabase.from("activity_log").insert({
-      owner_id: SHARED_OWNER_ID,
       application_id: appId,
       candidate_id: app.candidate_id,
       job_id: jobId,
@@ -178,7 +176,6 @@ export default function Pipeline() {
     const { data: cand, error: e1 } = await supabase
       .from("candidates")
       .insert({
-        owner_id: SHARED_OWNER_ID,
         name: cName.trim(),
         email: cEmail.trim() || null,
         phone: cPhone.trim() || null,
@@ -191,7 +188,6 @@ export default function Pipeline() {
     const { data: appRow, error: e2 } = await supabase
       .from("applications")
       .insert({
-        owner_id: SHARED_OWNER_ID,
         job_id: jobId,
         candidate_id: cand.id,
         stage: cStage,
@@ -201,7 +197,6 @@ export default function Pipeline() {
     setSaving(false);
     if (e2 || !appRow) return toast.error(e2?.message ?? "Failed");
     await supabase.from("activity_log").insert({
-      owner_id: SHARED_OWNER_ID,
       application_id: appRow.id,
       candidate_id: cand.id,
       job_id: jobId,
