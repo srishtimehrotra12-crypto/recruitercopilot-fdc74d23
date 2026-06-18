@@ -28,15 +28,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(newSession?.user ?? null);
     });
 
-    // Then check existing session
-    supabase.auth.getSession().then(({ data: { session: existing } }) => {
-      setSession(existing);
-      setUser(existing?.user ?? null);
+    // Then check existing session; sign in anonymously if missing
+    supabase.auth.getSession().then(async ({ data: { session: existing } }) => {
+      if (existing) {
+        setSession(existing);
+        setUser(existing.user);
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.auth.signInAnonymously();
+      if (error) console.error("Anonymous sign-in failed", error);
+      setSession(data?.session ?? null);
+      setUser(data?.user ?? null);
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
 
   const signOut = async () => {
     await supabase.auth.signOut();
