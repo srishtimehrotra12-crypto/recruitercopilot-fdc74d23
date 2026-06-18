@@ -28,20 +28,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(newSession?.user ?? null);
     });
 
-    // Then check existing session; sign in anonymously if missing
-    supabase.auth.getSession().then(async ({ data: { session: existing } }) => {
+    // Then check existing session; verify it's still valid, else sign in anonymously
+    (async () => {
+      const { data: { session: existing } } = await supabase.auth.getSession();
       if (existing) {
-        setSession(existing);
-        setUser(existing.user);
-        setLoading(false);
-        return;
+        // Verify the user still exists on the server (handles stale/deleted users)
+        const { data: userData, error: userErr } = await supabase.auth.getUser();
+        if (!userErr && userData?.user) {
+          setSession(existing);
+          setUser(userData.user);
+          setLoading(false);
+          return;
+        }
+        // Stale session — clear it before re-signing in
+        await supabase.auth.signOut();
       }
       const { data, error } = await supabase.auth.signInAnonymously();
       if (error) console.error("Anonymous sign-in failed", error);
       setSession(data?.session ?? null);
       setUser(data?.user ?? null);
       setLoading(false);
-    });
+    })();
 
     return () => subscription.unsubscribe();
   }, []);
