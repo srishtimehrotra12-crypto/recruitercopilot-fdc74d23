@@ -15,7 +15,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { SHARED_OWNER_ID } from "@/lib/workspace";
 import { toast } from "sonner";
 import { Users, Plus, Search, Sparkles, Mail, Phone, Tag, ChevronRight, Loader2 } from "lucide-react";
 
@@ -115,7 +114,6 @@ export default function Talent() {
     if (!form.name.trim()) return;
     setSaving(true);
     const { data, error } = await supabase.from("candidates").insert({
-      owner_id: SHARED_OWNER_ID,
       name: form.name.trim(),
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
@@ -127,7 +125,6 @@ export default function Talent() {
     }).select("id").single();
     if (!error && data) {
       await supabase.from("activity_log").insert({
-        owner_id: SHARED_OWNER_ID,
         candidate_id: data.id,
         type: "candidate_created",
         message: `Added candidate: ${form.name.trim()}`,
