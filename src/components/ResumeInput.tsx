@@ -3,7 +3,7 @@ import { FileText, Plus, X, Upload, CheckCircle2, AlertCircle, Loader2 } from "l
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { extractTextFromPdf } from "@/lib/pdfParser";
+import { extractTextFromFile, getFileKind, ACCEPTED_FILE_EXTS } from "@/lib/fileParser";
 
 const MAX_RESUMES = 20;
 
@@ -75,19 +75,24 @@ export function ResumeInput({ resumes, onAdd, onRemove }: ResumeInputProps) {
       await Promise.all(
         toProcess.map(async (file, i) => {
           const item = items[i];
-          const name = file.name.replace(/\.(pdf|txt)$/i, "");
+          const name = file.name.replace(/\.(pdf|txt|docx?|DOCX?)$/i, "");
           try {
             updateProgress(item.id, { progress: 25 });
-            const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-            const isTxt = file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt");
+            const kind = getFileKind(file);
 
-            if (!isPdf && !isTxt) {
-              updateProgress(item.id, { status: "error", progress: 100, message: "Only PDF/TXT supported" });
+            if (!kind) {
+              updateProgress(item.id, { status: "error", progress: 100, message: "Only PDF/TXT/DOC/DOCX supported" });
               return;
             }
 
             updateProgress(item.id, { progress: 55 });
-            const text = isPdf ? await extractTextFromPdf(file) : await file.text();
+            let text = "";
+            try {
+              text = await extractTextFromFile(file);
+            } catch (err: any) {
+              updateProgress(item.id, { status: "error", progress: 100, message: err?.message || "Failed to parse" });
+              return;
+            }
             updateProgress(item.id, { progress: 85 });
 
             if (!text.trim()) {
@@ -176,7 +181,7 @@ export function ResumeInput({ resumes, onAdd, onRemove }: ResumeInputProps) {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.txt"
+            accept={ACCEPTED_FILE_EXTS}
             multiple
             className="hidden"
             onChange={handleFileUpload}
@@ -296,7 +301,7 @@ export function ResumeInput({ resumes, onAdd, onRemove }: ResumeInputProps) {
         >
           <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground text-sm font-medium">
-            {isDragOver ? "Drop resumes here" : "Drag & drop up to 20 PDF or TXT files"}
+            {isDragOver ? "Drop resumes here" : "Drag & drop up to 20 PDF, TXT, or DOC/DOCX files"}
           </p>
           <p className="text-muted-foreground text-xs mt-1">or click to browse</p>
         </div>
@@ -315,7 +320,7 @@ export function ResumeInput({ resumes, onAdd, onRemove }: ResumeInputProps) {
         >
           {isDragOver
             ? "Drop here"
-            : `Drop more PDF/TXT files here (${MAX_RESUMES - resumes.length} slot${MAX_RESUMES - resumes.length === 1 ? "" : "s"} left)`}
+            : `Drop more PDF/TXT/DOC files here (${MAX_RESUMES - resumes.length} slot${MAX_RESUMES - resumes.length === 1 ? "" : "s"} left)`}
         </div>
       )}
 

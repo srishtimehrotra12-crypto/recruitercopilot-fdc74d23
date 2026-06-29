@@ -14,7 +14,7 @@ import type { ScreeningSession } from "@/hooks/useHistory";
 import { Button } from "@/components/ui/button";
 import { Briefcase, RotateCcw, Sparkles, Upload, FileText, Users, Download } from "lucide-react";
 import { toast } from "sonner";
-import { extractTextFromPdf } from "@/lib/pdfParser";
+import { extractTextFromFile, getFileKind, ACCEPTED_FILE_EXTS } from "@/lib/fileParser";
 import { downloadCandidatesCsv } from "@/lib/csvExport";
 
 const Index = () => {
@@ -47,17 +47,13 @@ const Index = () => {
     if (!file) return;
     setJdProcessing(true);
     try {
-      let text = "";
-      if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-        text = await extractTextFromPdf(file);
-        if (!text.trim()) {
-          toast.error("Could not extract text (may be a scanned image PDF)");
-          return;
-        }
-      } else if (file.type === "text/plain" || file.name.toLowerCase().endsWith(".txt")) {
-        text = await file.text();
-      } else {
-        toast.error("Only PDF and TXT files are supported");
+      if (!getFileKind(file)) {
+        toast.error("Only PDF, TXT, or DOC/DOCX files are supported");
+        return;
+      }
+      const text = await extractTextFromFile(file);
+      if (!text.trim()) {
+        toast.error("Could not extract text (may be a scanned image PDF)");
         return;
       }
       setJobDescription(text);
@@ -140,7 +136,7 @@ const Index = () => {
           step={1}
           icon={<Briefcase className="w-5 h-5" />}
           title="Job Description"
-          description="Paste the role description or upload a PDF/TXT file."
+          description="Paste the role description or upload a PDF, TXT, or DOC/DOCX file."
           actions={
             <>
               <Button
@@ -156,14 +152,14 @@ const Index = () => {
                   </>
                 ) : (
                   <>
-                    <Upload className="w-4 h-4 mr-1" /> Upload PDF/TXT
+                    <Upload className="w-4 h-4 mr-1" /> Upload PDF/TXT/DOC
                   </>
                 )}
               </Button>
               <input
                 ref={jdFileInputRef}
                 type="file"
-                accept=".pdf,.txt"
+                accept={ACCEPTED_FILE_EXTS}
                 className="hidden"
                 onChange={handleJdUpload}
               />
@@ -173,7 +169,7 @@ const Index = () => {
           <textarea
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste the job description here, or upload a PDF/TXT file."
+            placeholder="Paste the job description here, or upload a PDF, TXT, or DOC/DOCX file."
             rows={6}
             className="w-full px-4 py-3 border border-input rounded-lg bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring placeholder:text-muted-foreground"
           />
