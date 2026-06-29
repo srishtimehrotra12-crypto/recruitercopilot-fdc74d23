@@ -146,8 +146,35 @@ export default function Jobs() {
                 <Input id="l" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Remote · Berlin" />
               </div>
               <div>
-                <Label htmlFor="d">Description</Label>
-                <Textarea id="d" value={description} onChange={(e) => setDescription(e.target.value)} rows={5} />
+                <div className="flex items-center justify-between mb-1">
+                  <Label htmlFor="d">Description</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => jdFileInputRef.current?.click()}
+                    disabled={jdProcessing}
+                  >
+                    {jdProcessing ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-1" /> Upload JD (PDF/TXT/DOC)
+                      </>
+                    )}
+                  </Button>
+                  <input
+                    ref={jdFileInputRef}
+                    type="file"
+                    accept={ACCEPTED_FILE_EXTS}
+                    className="hidden"
+                    onChange={handleJdUpload}
+                  />
+                </div>
+                <Textarea id="d" value={description} onChange={(e) => setDescription(e.target.value)} rows={6} placeholder="Paste the JD or upload a file above." />
               </div>
               <div>
                 <Label>Status</Label>
