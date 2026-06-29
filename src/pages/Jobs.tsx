@@ -36,6 +36,37 @@ export default function Jobs() {
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState<"open" | "paused" | "closed">("open");
   const [saving, setSaving] = useState(false);
+  const [jdProcessing, setJdProcessing] = useState(false);
+  const jdFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleJdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setJdProcessing(true);
+    try {
+      if (!getFileKind(file)) {
+        toast.error("Only PDF, TXT, or DOC/DOCX files are supported");
+        return;
+      }
+      const text = await extractTextFromFile(file);
+      if (!text.trim()) {
+        toast.error("Could not extract text (may be a scanned image PDF)");
+        return;
+      }
+      setDescription(text);
+      if (!title.trim()) {
+        const base = file.name.replace(/\.[^.]+$/, "");
+        setTitle(base.slice(0, 80));
+      }
+      toast.success(`Loaded ${file.name}`);
+    } catch (err) {
+      console.error("JD upload error:", err);
+      toast.error("Failed to process file");
+    } finally {
+      setJdProcessing(false);
+      if (jdFileInputRef.current) jdFileInputRef.current.value = "";
+    }
+  };
 
   const load = async () => {
     setLoading(true);
