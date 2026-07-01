@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { KanbanSquare, Plus, UserPlus, GripVertical, Upload } from "lucide-react";
 import { extractTextFromFile, getFileKind, ACCEPTED_FILE_EXTS } from "@/lib/fileParser";
+import { useUserRole } from "@/hooks/useUserRole";
 
 type Stage = "applied" | "screening" | "interview" | "offer" | "hired" | "rejected";
 const STAGES: { id: Stage; label: string }[] = [
