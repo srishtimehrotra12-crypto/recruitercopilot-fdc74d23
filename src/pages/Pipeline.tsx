@@ -278,7 +278,37 @@ export default function Pipeline() {
                   <div><Label>Email</Label><Input type="email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} /></div>
                   <div><Label>Phone</Label><Input value={cPhone} onChange={(e) => setCPhone(e.target.value)} /></div>
                 </div>
-                <div><Label>Notes</Label><Textarea value={cNotes} onChange={(e) => setCNotes(e.target.value)} rows={3} /></div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label>Notes / Resume</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resumeInputRef.current?.click()}
+                      disabled={resumeProcessing}
+                    >
+                      {resumeProcessing ? (
+                        <>
+                          <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-1" /> Upload Resume (PDF/TXT/DOC)
+                        </>
+                      )}
+                    </Button>
+                    <input
+                      ref={resumeInputRef}
+                      type="file"
+                      accept={ACCEPTED_FILE_EXTS}
+                      className="hidden"
+                      onChange={handleResumeUpload}
+                    />
+                  </div>
+                  <Textarea value={cNotes} onChange={(e) => setCNotes(e.target.value)} rows={5} placeholder="Paste notes or upload a resume above." />
+                </div>
                 <div>
                   <Label>Stage</Label>
                   <Select value={cStage} onValueChange={(v: any) => setCStage(v)}>
