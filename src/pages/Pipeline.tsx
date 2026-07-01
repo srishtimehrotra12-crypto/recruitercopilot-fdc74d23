@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { KanbanSquare, Plus, UserPlus, GripVertical, Upload } from "lucide-react";
 import { extractTextFromFile, getFileKind, ACCEPTED_FILE_EXTS } from "@/lib/fileParser";
+import { useUserRole } from "@/hooks/useUserRole";
 
 type Stage = "applied" | "screening" | "interview" | "offer" | "hired" | "rejected";
 const STAGES: { id: Stage; label: string }[] = [
@@ -106,6 +107,7 @@ export default function Pipeline() {
   const [saving, setSaving] = useState(false);
   const [resumeProcessing, setResumeProcessing] = useState(false);
   const resumeInputRef = useRef<HTMLInputElement>(null);
+  const { canUpload } = useUserRole();
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -281,31 +283,35 @@ export default function Pipeline() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <Label>Notes / Resume</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => resumeInputRef.current?.click()}
-                      disabled={resumeProcessing}
-                    >
-                      {resumeProcessing ? (
-                        <>
-                          <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4 mr-1" /> Upload Resume (PDF/TXT/DOC)
-                        </>
-                      )}
-                    </Button>
-                    <input
-                      ref={resumeInputRef}
-                      type="file"
-                      accept={ACCEPTED_FILE_EXTS}
-                      className="hidden"
-                      onChange={handleResumeUpload}
-                    />
+                    {canUpload && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => resumeInputRef.current?.click()}
+                          disabled={resumeProcessing}
+                        >
+                          {resumeProcessing ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 mr-1" /> Upload Resume (PDF/TXT/DOC)
+                            </>
+                          )}
+                        </Button>
+                        <input
+                          ref={resumeInputRef}
+                          type="file"
+                          accept={ACCEPTED_FILE_EXTS}
+                          className="hidden"
+                          onChange={handleResumeUpload}
+                        />
+                      </>
+                    )}
                   </div>
                   <Textarea value={cNotes} onChange={(e) => setCNotes(e.target.value)} rows={5} placeholder="Paste notes or upload a resume above." />
                 </div>
