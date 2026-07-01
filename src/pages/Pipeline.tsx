@@ -107,6 +107,7 @@ export default function Pipeline() {
   const [saving, setSaving] = useState(false);
   const [resumeProcessing, setResumeProcessing] = useState(false);
   const resumeInputRef = useRef<HTMLInputElement>(null);
+  const { canUpload } = useUserRole();
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
