@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors,
@@ -18,7 +18,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { KanbanSquare, Plus, UserPlus, GripVertical } from "lucide-react";
+import { KanbanSquare, Plus, UserPlus, GripVertical, Upload } from "lucide-react";
+import { extractTextFromFile, getFileKind, ACCEPTED_FILE_EXTS } from "@/lib/fileParser";
 
 type Stage = "applied" | "screening" | "interview" | "offer" | "hired" | "rejected";
 const STAGES: { id: Stage; label: string }[] = [
