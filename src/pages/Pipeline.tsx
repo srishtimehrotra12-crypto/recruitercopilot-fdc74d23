@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors,
@@ -18,7 +18,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { KanbanSquare, Plus, UserPlus, GripVertical } from "lucide-react";
+import { KanbanSquare, Plus, UserPlus, GripVertical, Upload } from "lucide-react";
+import { extractTextFromFile, getFileKind, ACCEPTED_FILE_EXTS } from "@/lib/fileParser";
 
 type Stage = "applied" | "screening" | "interview" | "offer" | "hired" | "rejected";
 const STAGES: { id: Stage; label: string }[] = [
@@ -103,6 +104,41 @@ export default function Pipeline() {
   const [cNotes, setCNotes] = useState("");
   const [cStage, setCStage] = useState<Stage>("applied");
   const [saving, setSaving] = useState(false);
+  const [resumeProcessing, setResumeProcessing] = useState(false);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setResumeProcessing(true);
+    try {
+      if (!getFileKind(file)) {
+        toast.error("Only PDF, TXT, or DOC/DOCX files are supported");
+        return;
+      }
+      const text = await extractTextFromFile(file);
+      if (!text.trim()) {
+        toast.error("Could not extract text (may be a scanned image PDF)");
+        return;
+      }
+      setCNotes((prev) => (prev ? prev + "\n\n---\n\n" + text : text));
+      if (!cName.trim()) {
+        const base = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
+        setCName(base.slice(0, 80));
+      }
+      const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+      if (emailMatch && !cEmail.trim()) setCEmail(emailMatch[0]);
+      const phoneMatch = text.match(/(\+?\d[\d\s().-]{7,}\d)/);
+      if (phoneMatch && !cPhone.trim()) setCPhone(phoneMatch[1].trim());
+      toast.success(`Loaded ${file.name}`);
+    } catch (err) {
+      console.error("Resume upload error:", err);
+      toast.error("Failed to process file");
+    } finally {
+      setResumeProcessing(false);
+      if (resumeInputRef.current) resumeInputRef.current.value = "";
+    }
+  };
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -242,7 +278,37 @@ export default function Pipeline() {
                   <div><Label>Email</Label><Input type="email" value={cEmail} onChange={(e) => setCEmail(e.target.value)} /></div>
                   <div><Label>Phone</Label><Input value={cPhone} onChange={(e) => setCPhone(e.target.value)} /></div>
                 </div>
-                <div><Label>Notes</Label><Textarea value={cNotes} onChange={(e) => setCNotes(e.target.value)} rows={3} /></div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label>Notes / Resume</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resumeInputRef.current?.click()}
+                      disabled={resumeProcessing}
+                    >
+                      {resumeProcessing ? (
+                        <>
+                          <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-1" /> Upload Resume (PDF/TXT/DOC)
+                        </>
+                      )}
+                    </Button>
+                    <input
+                      ref={resumeInputRef}
+                      type="file"
+                      accept={ACCEPTED_FILE_EXTS}
+                      className="hidden"
+                      onChange={handleResumeUpload}
+                    />
+                  </div>
+                  <Textarea value={cNotes} onChange={(e) => setCNotes(e.target.value)} rows={5} placeholder="Paste notes or upload a resume above." />
+                </div>
                 <div>
                   <Label>Stage</Label>
                   <Select value={cStage} onValueChange={(v: any) => setCStage(v)}>
