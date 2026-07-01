@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Briefcase, Plus, KanbanSquare, Upload } from "lucide-react";
 import { extractTextFromFile, getFileKind, ACCEPTED_FILE_EXTS } from "@/lib/fileParser";
+import { useUserRole } from "@/hooks/useUserRole";
 
 type Job = {
   id: string;
