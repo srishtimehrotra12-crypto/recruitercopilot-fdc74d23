@@ -39,6 +39,7 @@ export default function Jobs() {
   const [saving, setSaving] = useState(false);
   const [jdProcessing, setJdProcessing] = useState(false);
   const jdFileInputRef = useRef<HTMLInputElement>(null);
+  const { canUpload } = useUserRole();
 
   const handleJdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
