@@ -76,6 +76,56 @@ export default function Dashboard() {
   });
   const [saving, setSaving] = useState(false);
 
+  const { canUpload } = useUserRole();
+  const jdInputRef = useRef<HTMLInputElement>(null);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const [jdProcessing, setJdProcessing] = useState(false);
+  const [resumeProcessing, setResumeProcessing] = useState(false);
+
+  const handleJdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setJdProcessing(true);
+    try {
+      if (!getFileKind(file)) { toast.error("Only PDF, TXT, or DOC/DOCX files are supported"); return; }
+      const text = await extractTextFromFile(file);
+      if (!text.trim()) { toast.error("Could not extract text (may be a scanned image PDF)"); return; }
+      setJobDescription(text);
+      if (!jobTitle.trim()) setJobTitle(file.name.replace(/\.[^.]+$/, "").slice(0, 80));
+      toast.success(`Loaded ${file.name}`);
+    } catch (err) {
+      console.error(err); toast.error("Failed to process file");
+    } finally {
+      setJdProcessing(false);
+      if (jdInputRef.current) jdInputRef.current.value = "";
+    }
+  };
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setResumeProcessing(true);
+    try {
+      if (!getFileKind(file)) { toast.error("Only PDF, TXT, or DOC/DOCX files are supported"); return; }
+      const text = await extractTextFromFile(file);
+      if (!text.trim()) { toast.error("Could not extract text (may be a scanned image PDF)"); return; }
+      const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+      const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l.length > 1 && l.length < 80) || "";
+      setCandidateForm((f) => ({
+        ...f,
+        name: f.name || firstLine,
+        email: f.email || (emailMatch?.[0] ?? ""),
+        notes: text,
+      }));
+      toast.success(`Loaded ${file.name}`);
+    } catch (err) {
+      console.error(err); toast.error("Failed to process file");
+    } finally {
+      setResumeProcessing(false);
+      if (resumeInputRef.current) resumeInputRef.current.value = "";
+    }
+  };
+
   const load = async () => {
     setLoading(true);
     const [j, c, a, log] = await Promise.all([
