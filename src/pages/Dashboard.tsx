@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { extractTextFromFile, getFileKind, ACCEPTED_FILE_EXTS } from "@/lib/fileParser";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Activity, ArrowRight, BarChart3, Briefcase, CalendarClock, KanbanSquare,
-  Plus, Search, Sparkles, TrendingUp, UserPlus, Users,
+  Plus, Search, Sparkles, TrendingUp, Upload, UserPlus, Users,
 } from "lucide-react";
 
 type Stage = "applied" | "screening" | "interview" | "offer" | "hired" | "rejected";
@@ -73,6 +75,56 @@ export default function Dashboard() {
     name: "", email: "", source: "", skills: "", tags: "", notes: "",
   });
   const [saving, setSaving] = useState(false);
+
+  const { canUpload } = useUserRole();
+  const jdInputRef = useRef<HTMLInputElement>(null);
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const [jdProcessing, setJdProcessing] = useState(false);
+  const [resumeProcessing, setResumeProcessing] = useState(false);
+
+  const handleJdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setJdProcessing(true);
+    try {
+      if (!getFileKind(file)) { toast.error("Only PDF, TXT, or DOC/DOCX files are supported"); return; }
+      const text = await extractTextFromFile(file);
+      if (!text.trim()) { toast.error("Could not extract text (may be a scanned image PDF)"); return; }
+      setJobDescription(text);
+      if (!jobTitle.trim()) setJobTitle(file.name.replace(/\.[^.]+$/, "").slice(0, 80));
+      toast.success(`Loaded ${file.name}`);
+    } catch (err) {
+      console.error(err); toast.error("Failed to process file");
+    } finally {
+      setJdProcessing(false);
+      if (jdInputRef.current) jdInputRef.current.value = "";
+    }
+  };
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setResumeProcessing(true);
+    try {
+      if (!getFileKind(file)) { toast.error("Only PDF, TXT, or DOC/DOCX files are supported"); return; }
+      const text = await extractTextFromFile(file);
+      if (!text.trim()) { toast.error("Could not extract text (may be a scanned image PDF)"); return; }
+      const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+      const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l.length > 1 && l.length < 80) || "";
+      setCandidateForm((f) => ({
+        ...f,
+        name: f.name || firstLine,
+        email: f.email || (emailMatch?.[0] ?? ""),
+        notes: text,
+      }));
+      toast.success(`Loaded ${file.name}`);
+    } catch (err) {
+      console.error(err); toast.error("Failed to process file");
+    } finally {
+      setResumeProcessing(false);
+      if (resumeInputRef.current) resumeInputRef.current.value = "";
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -217,7 +269,24 @@ export default function Dashboard() {
                   <div><Label>Skills</Label><Input value={candidateForm.skills} onChange={(e) => setCandidateForm({ ...candidateForm, skills: e.target.value })} placeholder="React, Go, AWS" /></div>
                   <div><Label>Tags</Label><Input value={candidateForm.tags} onChange={(e) => setCandidateForm({ ...candidateForm, tags: e.target.value })} placeholder="senior, remote" /></div>
                 </div>
-                <div><Label>Notes</Label><Textarea rows={3} value={candidateForm.notes} onChange={(e) => setCandidateForm({ ...candidateForm, notes: e.target.value })} /></div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label>Notes</Label>
+                    {canUpload && (
+                      <>
+                        <Button type="button" variant="outline" size="sm" onClick={() => resumeInputRef.current?.click()} disabled={resumeProcessing}>
+                          {resumeProcessing ? (
+                            <><div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />Processing...</>
+                          ) : (
+                            <><Upload className="w-4 h-4 mr-1" /> Upload Resume (PDF/TXT/DOC)</>
+                          )}
+                        </Button>
+                        <input ref={resumeInputRef} type="file" accept={ACCEPTED_FILE_EXTS} className="hidden" onChange={handleResumeUpload} />
+                      </>
+                    )}
+                  </div>
+                  <Textarea rows={3} value={candidateForm.notes} onChange={(e) => setCandidateForm({ ...candidateForm, notes: e.target.value })} />
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setCandidateOpen(false)}>Cancel</Button>
@@ -235,7 +304,24 @@ export default function Dashboard() {
               <div className="space-y-3">
                 <div><Label>Title *</Label><Input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Senior Backend Engineer" /></div>
                 <div><Label>Location</Label><Input value={jobLocation} onChange={(e) => setJobLocation(e.target.value)} placeholder="Remote · London" /></div>
-                <div><Label>Description</Label><Textarea rows={4} value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} /></div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label>Description</Label>
+                    {canUpload && (
+                      <>
+                        <Button type="button" variant="outline" size="sm" onClick={() => jdInputRef.current?.click()} disabled={jdProcessing}>
+                          {jdProcessing ? (
+                            <><div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />Processing...</>
+                          ) : (
+                            <><Upload className="w-4 h-4 mr-1" /> Upload JD (PDF/TXT/DOC)</>
+                          )}
+                        </Button>
+                        <input ref={jdInputRef} type="file" accept={ACCEPTED_FILE_EXTS} className="hidden" onChange={handleJdUpload} />
+                      </>
+                    )}
+                  </div>
+                  <Textarea rows={4} value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />
+                </div>
                 <div>
                   <Label>Status</Label>
                   <Select value={jobStatus} onValueChange={(v: "open" | "paused" | "closed") => setJobStatus(v)}>
