@@ -269,7 +269,24 @@ export default function Dashboard() {
                   <div><Label>Skills</Label><Input value={candidateForm.skills} onChange={(e) => setCandidateForm({ ...candidateForm, skills: e.target.value })} placeholder="React, Go, AWS" /></div>
                   <div><Label>Tags</Label><Input value={candidateForm.tags} onChange={(e) => setCandidateForm({ ...candidateForm, tags: e.target.value })} placeholder="senior, remote" /></div>
                 </div>
-                <div><Label>Notes</Label><Textarea rows={3} value={candidateForm.notes} onChange={(e) => setCandidateForm({ ...candidateForm, notes: e.target.value })} /></div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label>Notes</Label>
+                    {canUpload && (
+                      <>
+                        <Button type="button" variant="outline" size="sm" onClick={() => resumeInputRef.current?.click()} disabled={resumeProcessing}>
+                          {resumeProcessing ? (
+                            <><div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />Processing...</>
+                          ) : (
+                            <><Upload className="w-4 h-4 mr-1" /> Upload Resume (PDF/TXT/DOC)</>
+                          )}
+                        </Button>
+                        <input ref={resumeInputRef} type="file" accept={ACCEPTED_FILE_EXTS} className="hidden" onChange={handleResumeUpload} />
+                      </>
+                    )}
+                  </div>
+                  <Textarea rows={3} value={candidateForm.notes} onChange={(e) => setCandidateForm({ ...candidateForm, notes: e.target.value })} />
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setCandidateOpen(false)}>Cancel</Button>
