@@ -304,7 +304,24 @@ export default function Dashboard() {
               <div className="space-y-3">
                 <div><Label>Title *</Label><Input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Senior Backend Engineer" /></div>
                 <div><Label>Location</Label><Input value={jobLocation} onChange={(e) => setJobLocation(e.target.value)} placeholder="Remote · London" /></div>
-                <div><Label>Description</Label><Textarea rows={4} value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} /></div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label>Description</Label>
+                    {canUpload && (
+                      <>
+                        <Button type="button" variant="outline" size="sm" onClick={() => jdInputRef.current?.click()} disabled={jdProcessing}>
+                          {jdProcessing ? (
+                            <><div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin mr-1" />Processing...</>
+                          ) : (
+                            <><Upload className="w-4 h-4 mr-1" /> Upload JD (PDF/TXT/DOC)</>
+                          )}
+                        </Button>
+                        <input ref={jdInputRef} type="file" accept={ACCEPTED_FILE_EXTS} className="hidden" onChange={handleJdUpload} />
+                      </>
+                    )}
+                  </div>
+                  <Textarea rows={4} value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />
+                </div>
                 <div>
                   <Label>Status</Label>
                   <Select value={jobStatus} onValueChange={(v: "open" | "paused" | "closed") => setJobStatus(v)}>
