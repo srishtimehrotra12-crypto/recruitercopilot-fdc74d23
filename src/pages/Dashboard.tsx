@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Activity, ArrowRight, BarChart3, Briefcase, CalendarClock, KanbanSquare,
-  Plus, Search, Sparkles, TrendingUp, UserPlus, Users,
+  Plus, Search, Sparkles, TrendingUp, Upload, UserPlus, Users,
 } from "lucide-react";
 
 type Stage = "applied" | "screening" | "interview" | "offer" | "hired" | "rejected";
